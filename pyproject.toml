@@ -1,0 +1,73 @@
+[project]
+name = "naba-top"
+version = "0.1.0"
+description = "App for displaying radio Naba top 10 and top 25 lists for each week, as well as combining the lists into one top 100"
+readme = "README.md"
+requires-python = ">=3.14"
+authors = [{ name = "Jēkabs Balodis", email = "signalingpigeon@duck.com" }]
+dependencies = [
+  "anodb>=15.0",
+  "beautifulsoup4>=4.14.3",
+  "duckdb>=1.4.3",
+  "httpx>=0.28.1",
+  "lxml>=6.0.2",
+  "prefect>=3.6.11",
+  "pydantic[email]>=2.12.5",
+]
+
+[dependency-groups]
+dev = [
+  "basedpyright>=1.31.6",
+  "pytest>=8.4.2",
+  "pytest-coverage>=0.0",
+  "ruff>=0.13.2",
+  "sqlfluff>=3.5.0",
+  "tombi>=0.6.17",
+  "ty>=0.0.1a21",
+]
+
+[tool.basedpyright]
+pythonVersion = "3.14"
+pythonPlatform = "Windows"
+typeCheckingMode = "off"
+reportUnusedImport = false
+reportUnusedVariable = false
+
+[tool.coverage.run]
+omit = ["tests/*"]
+source = [
+  ".",
+]
+
+[tool.ruff]
+target-version = "py314"
+
+[tool.ruff.format]
+quote-style = "single"
+
+[tool.ruff.lint]
+select = [
+  "E",  # pycodestyle error
+  "W",  # pycodestyle warning
+  "F",  # pyflakes
+  "I",  # isort
+  "N",  # pep8 naming
+  "UP",  # pyupgrade
+  "B",  # flake8-bugbear
+  "C4",  # flake8-comprehensions
+  "PL",  # pylint
+]
+ignore = ["PLR2004", "F821"]
+
+[tool.tombi.files]
+exclude = [".venv/**"]
+
+[tool.ty.environment]
+extra-paths = ["typings"]
+python-platform = "win32"
+python-version = "3.14"
+
+[tool.uv]
+required-environments = [
+  "sys_platform == 'win32' and platform_machine == 'AMD64'"
+]
