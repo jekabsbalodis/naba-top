@@ -1,0 +1,7 @@
+[db]
+path = ":memory:"
+queries = "queries"
+
+[flows]
+url = "https://www.example.com"
+email = "mail@example.com"
