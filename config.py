@@ -21,13 +21,6 @@ except FileNotFoundError as e:
     sys.exit()
 
 
-def validate_queries_path(v: Path) -> Path:
-    p = (basedir / v).resolve()
-    if not p.exists():
-        raise FileNotFoundError(f'Queries path does not exist - {p}')
-    return p
-
-
 def validate_db_path(v: Path | str) -> Path | str:
     if v == ':memory:':
         return v
@@ -39,14 +32,12 @@ def validate_db_path(v: Path | str) -> Path | str:
 
 class Config(BaseModel):
     DB_PATH: Annotated[Path | str, AfterValidator(validate_db_path)]
-    QUERIES_PATH: Annotated[Path, AfterValidator(validate_queries_path)]
     FLOW_URL: HttpUrl
     FLOW_EMAIL: EmailStr
 
 
 config = Config(
     DB_PATH=_config['db']['path'],
-    QUERIES_PATH=_config['db']['queries'],
     FLOW_URL=_config['flows']['url'],
     FLOW_EMAIL=_config['flows']['email'],
 )

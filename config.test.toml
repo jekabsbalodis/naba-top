@@ -1,6 +1,5 @@
 [db]
-path = ":memory:"
-queries = "queries"
+path = "database/database-test.duckdb"
 
 [flows]
 url = "https://www.example.com"
