@@ -8,7 +8,10 @@ from flows.update_songs import update_songs_flow
 
 
 @flow
-def main_flow(url: HttpUrl, email: EmailStr) -> None:
+def main_flow(
+    url: HttpUrl = config.FLOW_URL,
+    email: EmailStr = config.FLOW_EMAIL,
+) -> None:
     """Main flow that orchestrates updating songs and charts table in db"""
     response = fetch_webpage(url, email)
     soup = parse_html(response)
@@ -18,10 +21,4 @@ def main_flow(url: HttpUrl, email: EmailStr) -> None:
 
 
 if __name__ == '__main__':
-    main_flow.serve(
-        name='naba-top-scrape',
-        parameters={
-            'url': config.FLOW_URL,
-            'email': config.FLOW_EMAIL,
-        },
-    )
+    main_flow.deploy(name='naba-top-scrape')
