@@ -18,4 +18,10 @@ def main_flow(url: HttpUrl, email: EmailStr) -> None:
 
 
 if __name__ == '__main__':
-    main_flow(url=config.FLOW_URL, email=config.FLOW_EMAIL)
+    main_flow.serve(
+        name='naba-top-scrape',
+        parameters={
+            'url': config.FLOW_URL,
+            'email': config.FLOW_EMAIL,
+        },
+    )
