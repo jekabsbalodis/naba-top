@@ -33,6 +33,30 @@ def init_db() -> None:
     CREATE INDEX IF NOT EXISTS idx_charts_week ON charts (week);
     CREATE INDEX IF NOT EXISTS idx_charts_type_week ON charts (chart_type, week);
     CREATE INDEX IF NOT EXISTS idx_charts_song_id ON charts (song_id);
+
+    -- Create a view to display TOP 10
+    create view if not exists top10 as
+    select c.week,
+           s.artist,
+           s.song_name,
+           c.place,
+           c.is_new_entry
+    from charts c
+    join songs s on c.song_id = s.id
+    where c.chart_type = 'top10'
+    order by c.week desc, c.place asc;
+
+    -- Create a view to display TOP 25
+    create view if not exists top25 as
+    select c.week,
+           s.artist,
+           s.song_name,
+           c.place,
+           c.is_new_entry
+    from charts c
+    join songs s on c.song_id = s.id
+    where c.chart_type = 'top25'
+    order by c.week desc, c.place asc;
                      """)
 
 
