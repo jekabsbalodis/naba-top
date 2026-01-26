@@ -36,34 +36,11 @@ def parse_song_data(soup: ResultSet[Tag]) -> list[Song]:
 
 
 @task
-def load_existing_songs() -> pl.DataFrame:
-    """Query database for records already available"""
-    with duckdb.connect(config.DB_PATH) as conn:
-        df = conn.sql('select * from songs').pl()
-
-    df.drop('id')
-    return df
-
-
-@task
-def create_web_songs_df(song_list: list[Song]) -> pl.DataFrame:
+def create_songs_df(song_list: list[Song]) -> pl.DataFrame:
     """Insert the parsed song values into polars dataframe"""
     web_songs = pl.DataFrame(song_list)
     web_songs = web_songs.drop('id')
     return web_songs
-
-
-@task
-def filter_new_songs(
-    existing_songs: pl.DataFrame, web_songs: pl.DataFrame
-) -> pl.DataFrame:
-    """Anti-join the web songs with existing songs to return only new songs"""
-    new_songs = web_songs.join(
-        other=existing_songs,
-        on=['web_songname'],
-        how='anti',
-    )
-    return new_songs
 
 
 @task
@@ -72,7 +49,7 @@ def insert_songs_into_db(new_songs: pl.DataFrame) -> None:
     with duckdb.connect(config.DB_PATH) as conn:
         conn.execute(
             """-- sql
-            insert into songs by name (
+            insert or ignore into songs (artist, song_name, web_songname) (
                 select * from new_songs
             )
             """
@@ -86,7 +63,5 @@ def update_songs_flow(soup: BeautifulSoup) -> None:
     and finaly insert songs into database."""
     song_soup = extract_song_elements(soup=soup)
     songs = parse_song_data(soup=song_soup)
-    existing_songs = load_existing_songs()
-    web_songs = create_web_songs_df(songs)
-    new_songs = filter_new_songs(existing_songs, web_songs)
-    insert_songs_into_db(new_songs)
+    songs_df = create_songs_df(songs)
+    insert_songs_into_db(songs_df)

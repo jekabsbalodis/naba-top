@@ -77,35 +77,11 @@ def parse_chart_data(soup: ResultSet[Tag]) -> list[ChartEntry]:
 
 
 @task
-def load_existing_chart_data() -> pl.DataFrame:
-    """Query database for existing charts"""
-    with duckdb.connect(config.DB_PATH) as conn:
-        df = conn.sql('select * from charts').pl()
-
-    df.drop('id')
-    return df
-
-
-@task
-def create_web_charts_df(chart_entries: list[ChartEntry]) -> pl.DataFrame:
+def create_charts_df(chart_entries: list[ChartEntry]) -> pl.DataFrame:
     """Insert the parsed chart data into polars dataframe"""
     web_chart = pl.DataFrame(chart_entries)
     web_chart = web_chart.drop('id')
     return web_chart
-
-
-@task
-def filter_new_charts(
-    existing_charts: pl.DataFrame, web_charts: pl.DataFrame
-) -> pl.DataFrame:
-    """Anti-join the web charts with existing chart data
-    to return only new chart data"""
-    new_chart_data = web_charts.join(
-        other=existing_charts,
-        on=['song_id', 'chart_type', 'week'],
-        how='anti',
-    )
-    return new_chart_data
 
 
 @task
@@ -114,7 +90,9 @@ def insert_chart_data_into_db(new_chart_data: pl.DataFrame) -> None:
     with duckdb.connect(config.DB_PATH) as conn:
         conn.execute(
             """-- sql
-            insert into charts by name (
+            insert or ignore into charts (
+                song_id, chart_type, place, week, is_new_entry
+            ) (
                 select * from new_chart_data
             )
             """
@@ -128,7 +106,5 @@ def update_charts_flow(soup: BeautifulSoup) -> None:
     and finaly insert chart data into database."""
     chart_soup = extract_chart_elements(soup=soup)
     charts = parse_chart_data(soup=chart_soup)
-    existing_chart_data = load_existing_chart_data()
-    web_charts = create_web_charts_df(charts)
-    new_charts = filter_new_charts(existing_chart_data, web_charts)
-    insert_chart_data_into_db(new_charts)
+    charts_df = create_charts_df(charts)
+    insert_chart_data_into_db(charts_df)
