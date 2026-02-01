@@ -6,11 +6,10 @@ readme = "README.md"
 requires-python = ">=3.14"
 authors = [{ name = "Jēkabs Balodis", email = "signalingpigeon@duck.com" }]
 dependencies = [
-  "beautifulsoup4>=4.14.3",
+  "beautifulsoup4[lxml]>=4.14.3",
   "duckdb>=1.4.3",
   "httpx>=0.28.1",
   "ibis-framework[duckdb,polars]>=11.0.0",
-  "lxml>=6.0.2",
   "polars[pyarrow]>=1.37.1",
   "prefect>=3.6.11",
   "pydantic[email]>=2.12.5",
