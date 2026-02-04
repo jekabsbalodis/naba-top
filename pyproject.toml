@@ -64,7 +64,6 @@ ignore = ["PLR2004", "F821"]
 exclude = [".venv/**"]
 
 [tool.ty.environment]
-extra-paths = ["typings"]
 python-platform = "win32"
 python-version = "3.14"
 
