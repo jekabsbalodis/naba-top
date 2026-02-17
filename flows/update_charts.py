@@ -32,22 +32,30 @@ def parse_chart_data(soup: ResultSet[Tag]) -> list[ChartEntry]:
     ) -> None:
         """Helper function to parse top10 and top25"""
         week_tag = chart_element.select_one('.songListDate')
-        if week_tag is not None:
-            week: date = parse(week_tag.text, dayfirst=True).date()
+        if week_tag is None:
+            raise LookupError('No tag for date found in the parsed webpage')
+        week: date = parse(week_tag.text, dayfirst=True).date()
 
         for song in top:
             info = song.find_next_sibling('div', class_='naba-top-song')
 
             with duckdb.connect(config.DB_PATH) as conn:
                 web_songname_tag = song.select_one('.songName')
-                if web_songname_tag is not None:
-                    web_songname: str = web_songname_tag.text
+                if web_songname_tag is None:
+                    raise LookupError(
+                        'No tag for web_songname found in the parsed webpage'
+                    )
+                web_songname: str = web_songname_tag.text
                 song_id_res = conn.sql(
                     'select id from songs where web_songname = ?',
                     params=[web_songname],
                 ).fetchone()
-            if song_id_res is not None:
-                song_id = song_id_res[0]
+            if song_id_res is None:
+                raise LookupError(
+                    f"""Song {web_songname} not found in database,
+                    check if song update flow has ran."""
+                )
+            song_id = song_id_res[0]
 
             place_tag = song.select_one('.songPlace')
             if place_tag is not None:
