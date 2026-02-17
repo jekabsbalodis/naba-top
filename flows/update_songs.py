@@ -44,13 +44,13 @@ def create_songs_df(song_list: list[Song]) -> pl.DataFrame:
 
 
 @task
-def insert_songs_into_db(new_songs: pl.DataFrame) -> None:
+def insert_songs_into_db(_new_songs: pl.DataFrame) -> None:
     """Write the dataframe of new songs into database"""
     with duckdb.connect(config.DB_PATH) as conn:
         conn.execute(
             """-- sql
             insert or ignore into songs (artist, song_name, web_songname) (
-                select * from new_songs
+                select * from _new_songs
             )
             """
         )

@@ -45,7 +45,14 @@ def parse_chart_data(soup: ResultSet[Tag]) -> list[ChartEntry]:
                     )
                 web_songname: str = web_songname_tag.text
                 song_id_res = conn.sql(
-                    'select id from songs where web_songname = ?',
+                    """-- sql
+                    select
+                        id
+                    from
+                        songs
+                    where
+                        web_songname = ?;
+                    """,
                     params=[web_songname],
                 ).fetchone()
             if song_id_res is None:
@@ -110,7 +117,7 @@ def create_charts_df(chart_entries: list[ChartEntry]) -> pl.DataFrame:
 
 
 @task
-def insert_chart_data_into_db(new_chart_data: pl.DataFrame) -> None:
+def insert_chart_data_into_db(_new_chart_data: pl.DataFrame) -> None:
     """Write the dataframe of new chart data into database"""
     with duckdb.connect(config.DB_PATH) as conn:
         conn.execute(
@@ -118,7 +125,7 @@ def insert_chart_data_into_db(new_chart_data: pl.DataFrame) -> None:
             insert or ignore into charts (
                 song_id, chart_type, place, week, is_new_entry
             ) (
-                select * from new_chart_data
+                select * from _new_chart_data
             )
             """
         )
