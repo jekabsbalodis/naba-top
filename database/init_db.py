@@ -14,7 +14,7 @@ def init_db() -> None:
           id UINT16 PRIMARY KEY DEFAULT nextval('song_id_sequence'),
           artist VARCHAR,
           song_name VARCHAR,
-          web_songname VARCHAR,
+          web_songname VARCHAR UNIQUE,
           UNIQUE (artist, song_name)
         );
 
