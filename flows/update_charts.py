@@ -37,8 +37,6 @@ def parse_chart_data(soup: ResultSet[Tag]) -> list[ChartEntry]:
         week: date = parse(week_tag.text, dayfirst=True).date()
 
         for song in top:
-            info = song.find_next_sibling('div', class_='naba-top-song')
-
             with duckdb.connect(config.DB_PATH) as conn:
                 web_songname_tag = song.select_one('.songName')
                 if web_songname_tag is None:
@@ -64,9 +62,28 @@ def parse_chart_data(soup: ResultSet[Tag]) -> list[ChartEntry]:
                 except ValueError:
                     place = None
 
-            is_new_entry_tag = info.select_one('.place_previous')
-            if is_new_entry_tag is not None:
-                is_new_entry = True if 'j' in str(is_new_entry_tag.text) else False
+            with duckdb.connect(config.DB_PATH) as conn:
+                old_entry_res = conn.sql(
+                    """-- sql
+                                         select
+                                             1
+                                         from
+                                             charts
+                                         where
+                                             song_id = ?;
+                                         """,
+                    params=[song_id],
+                ).fetchone()
+
+            if old_entry_res is not None:
+                old_entry = True
+            else:
+                old_entry = False
+
+            if place is None or old_entry is False:
+                is_new_entry = True
+            else:
+                is_new_entry = False
 
             entry = ChartEntry(
                 song_id=song_id,
