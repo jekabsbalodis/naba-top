@@ -109,6 +109,9 @@ def init_db() -> None:
               c.song_id
           )
         SELECT
+          rank() OVER (ORDER BY ss.normalized_points DESC,
+                                ss.weeks_in_chart ASC,
+                                ss.raw_points DESC) AS place,
           s.id as song_id,
           s.artist,
           s.song_name,
