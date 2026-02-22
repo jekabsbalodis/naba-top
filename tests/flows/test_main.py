@@ -8,37 +8,50 @@ from config import config
 from database.init_db import init_db
 from flows.main import main_flow
 
-NABA_HTML = """
-<html><body>
-<div class="songsList">
-    <form>
+
+def _make_song_lines(chart: str, ranked: int, unranked: int) -> str:
+    """Generate song HTML lines for test fixtures"""
+    lines = []
+    for i in range(1, ranked + 1):
+        lines.append(f"""
         <label class="songLine">
             <div class="leftLine">
-                <div class="songPlace">1</div>
-                <div class="songName">Artist One - Song One</div>
+                <div class="songPlace">{i}</div>
+                <div class="songName">Artist {chart} {i} - Song {chart} {i}</div>
             </div>
         </label>
         <div class="naba-top-song">
             <div class="song_vote_info">
-                <div class="place_previous">2</div>
+                <div class="place_previous">{i}</div>
             </div>
-        </div>
+        </div>""")
+    for i in range(unranked):
+        lines.append(f"""
+        <label class="songLine">
+            <div class="leftLine">
+            <div class="songPlace">j</div>
+            <div class="songName">Artist {chart} New {i} - Song {chart} New {i}</div>
+            </div>
+        </label>
+        <div class="naba-top-song">
+            <div class="song_vote_info">
+                <div class="place_previous">j</div>
+            </div>
+        </div>""")
+    return '\n'.join(lines)
+
+
+NABA_HTML = f"""
+<html><body>
+<div class="songsList">
+    <form>
+        {_make_song_lines('Top10', ranked=10, unranked=5)}
         <div class="newsCard__date songListDate">13.02.2026</div>
     </form>
 </div>
 <div class="songsList">
     <form>
-        <label class="songLine">
-            <div class="leftLine">
-                <div class="songPlace">1</div>
-                <div class="songName">Artist Two - Song Two</div>
-            </div>
-        </label>
-        <div class="naba-top-song">
-            <div class="song_vote_info">
-                <div class="place_previous">2</div>
-            </div>
-        </div>
+        {_make_song_lines('Top25', ranked=25, unranked=5)}
         <div class="newsCard__date songListDate">13.02.2026</div>
     </form>
 </div>
@@ -80,14 +93,14 @@ class TestMainFlow:
         with duckdb.connect(config.DB_PATH) as conn:
             count = conn.sql('select count(*) from songs').fetchone()
         assert count is not None
-        assert count[0] > 0
+        assert count[0] == 45
 
     def test_charts_are_inserted(self):
         main_flow.fn(config.FLOW_URL, config.FLOW_EMAIL)
         with duckdb.connect(config.DB_PATH) as conn:
             count = conn.sql('select count(*) from charts').fetchone()
         assert count is not None
-        assert count[0] > 0
+        assert count[0] == 45
 
     def test_idempotent_on_second_run(self):
         main_flow.fn(config.FLOW_URL, config.FLOW_EMAIL)
