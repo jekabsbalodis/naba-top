@@ -12,6 +12,7 @@ from flows.update_charts import (
     extract_chart_elements,
     insert_chart_data_into_db,
     parse_chart_data,
+    validate_charts_count,
 )
 from models import ChartEntry, ChartType
 
@@ -268,6 +269,97 @@ class TestParseChartData:
         soup = BeautifulSoup(html, 'lxml').css.select('.songsList')
         with pytest.raises(LookupError, match='No tag for web_songname found'):
             parse_chart_data.fn(soup)
+
+
+class TestValidateChartsCount:
+    def _make_entries(
+        self,
+        top10_ranked: int = 10,
+        top10_unranked: int = 5,
+        top25_ranked: int = 25,
+        top25_unranked: int = 5,
+    ) -> list[ChartEntry]:
+        entries = []
+        song_id = 1
+        for i in range(top10_ranked):
+            entries.append(
+                ChartEntry(
+                    song_id=song_id,
+                    chart_type=ChartType.TOP10,
+                    place=i + 1,
+                    week=date(2026, 2, 13),
+                    is_new_entry=False,
+                )
+            )
+            song_id += 1
+        for _ in range(top10_unranked):
+            entries.append(
+                ChartEntry(
+                    song_id=song_id,
+                    chart_type=ChartType.TOP10,
+                    place=None,
+                    week=date(2026, 2, 13),
+                    is_new_entry=True,
+                )
+            )
+            song_id += 1
+        for i in range(top25_ranked):
+            entries.append(
+                ChartEntry(
+                    song_id=song_id,
+                    chart_type=ChartType.TOP25,
+                    place=i + 1,
+                    week=date(2026, 2, 13),
+                    is_new_entry=False,
+                )
+            )
+            song_id += 1
+        for _ in range(top25_unranked):
+            entries.append(
+                ChartEntry(
+                    song_id=song_id,
+                    chart_type=ChartType.TOP25,
+                    place=None,
+                    week=date(2026, 2, 13),
+                    is_new_entry=True,
+                )
+            )
+            song_id += 1
+        return entries
+
+    def test_validates_correct_counts(self):
+        """Should not raise when counts are exactly 10 and 25"""
+        validate_charts_count.fn(self._make_entries())
+
+    def test_validates_correct_counts_with_unranked(self):
+        """Unranked entries alongside correct ranked counts should not raise"""
+        validate_charts_count.fn(self._make_entries())
+
+    def test_ignores_entries_with_none_place(self):
+        """Unranked (None place) entries should not be counted toward ranked total"""
+        validate_charts_count.fn(self._make_entries())
+
+    def test_raises_on_incorrect_top10_count(self):
+        """Should raise ValueError when TOP10 has fewer than 10 ranked entries"""
+        with pytest.raises(ValueError, match=f'{ChartType.TOP10} has 9 ranked entries'):
+            validate_charts_count.fn(self._make_entries(top10_ranked=9))
+
+    def test_raises_on_incorrect_top25_count(self):
+        """Should raise ValueError when TOP25 has fewer than 25 ranked entries"""
+        with pytest.raises(
+            ValueError, match=f'{ChartType.TOP25} has 24 ranked entries'
+        ):
+            validate_charts_count.fn(self._make_entries(top25_ranked=24))
+
+    def test_raises_on_empty_top10(self):
+        """Should raise ValueError when TOP10 has no ranked entries at all"""
+        with pytest.raises(ValueError, match=f'{ChartType.TOP10} has 0 ranked entries'):
+            validate_charts_count.fn(self._make_entries(top10_ranked=0))
+
+    def test_unranked_do_not_substitute_missing_ranked(self):
+        """9 ranked + 5 unranked should still fail — unranked don't count"""
+        with pytest.raises(ValueError, match=f'{ChartType.TOP10} has 9 ranked entries'):
+            validate_charts_count.fn(self._make_entries(top10_ranked=9))
 
 
 class TestCreateChartsDf:

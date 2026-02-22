@@ -109,6 +109,28 @@ def parse_chart_data(soup: ResultSet[Tag]) -> list[ChartEntry]:
 
 
 @task
+def validate_charts_count(chart_entries: list[ChartEntry]) -> None:
+    """Validate that scraped data has 10 ranked places for top10
+    and 25 ranked places for top25."""
+    expected_count = {ChartType.TOP10: 10, ChartType.TOP25: 25}
+
+    actual_count = dict.fromkeys(ChartType, 0)
+
+    for entry in chart_entries:
+        if entry.place is None:
+            continue
+        actual_count[entry.chart_type] += 1
+
+    for chart_type, expected in expected_count.items():
+        actual = actual_count[chart_type]
+        if actual != expected:
+            raise ValueError(
+                f"""{chart_type} has {actual} ranked entries, {expected} were expected.
+                Check webpage for errors."""
+            )
+
+
+@task
 def create_charts_df(chart_entries: list[ChartEntry]) -> pl.DataFrame:
     """Insert the parsed chart data into polars dataframe"""
     web_chart = pl.DataFrame(chart_entries)
@@ -138,5 +160,6 @@ def update_charts_flow(soup: BeautifulSoup) -> None:
     and finaly insert chart data into database."""
     chart_soup = extract_chart_elements(soup=soup)
     charts = parse_chart_data(soup=chart_soup)
+    validate_charts_count(chart_entries=charts)
     charts_df = create_charts_df(charts)
     insert_chart_data_into_db(charts_df)
