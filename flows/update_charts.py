@@ -5,6 +5,7 @@ import polars as pl
 from bs4 import BeautifulSoup, ResultSet, Tag
 from dateutil.parser import parse
 from prefect import flow, task
+from prefect.cache_policies import NO_CACHE
 
 from config import config
 from models import ChartEntry, ChartType
@@ -16,7 +17,7 @@ def extract_chart_elements(soup: BeautifulSoup) -> ResultSet[Tag]:
     return soup.css.select('.songsList')
 
 
-@task
+@task(cache_policy=NO_CACHE)
 def parse_chart_data(soup: ResultSet[Tag]) -> list[ChartEntry]:
     """Parse the part of the html page that contains information
     about charts - songs, the chart they are in and the place"""

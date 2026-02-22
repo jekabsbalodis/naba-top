@@ -6,7 +6,7 @@ from pydantic import EmailStr, HttpUrl
 
 
 @task(
-    retries=10,
+    retries=5,
     retry_delay_seconds=exponential_backoff(backoff_factor=3),
 )
 def fetch_webpage(url: HttpUrl, email: EmailStr) -> httpx.Response:

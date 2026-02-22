@@ -7,7 +7,7 @@ from flows.update_charts import update_charts_flow
 from flows.update_songs import update_songs_flow
 
 
-@flow
+@flow(retries=3, retry_delay_seconds=600)
 def main_flow(
     url: HttpUrl = config.FLOW_URL,
     email: EmailStr = config.FLOW_EMAIL,

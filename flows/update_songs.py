@@ -2,6 +2,7 @@ import duckdb
 import polars as pl
 from bs4 import BeautifulSoup, ResultSet, Tag
 from prefect import flow, task
+from prefect.cache_policies import NO_CACHE
 
 from config import config
 from models import Song
@@ -13,7 +14,7 @@ def extract_song_elements(soup: BeautifulSoup) -> ResultSet[Tag]:
     return soup.css.select('.songName')
 
 
-@task
+@task(cache_policy=NO_CACHE)
 def parse_song_data(soup: ResultSet[Tag]) -> list[Song]:
     """Parse the part of the html page that contains information
     about songs - artist and song name"""
