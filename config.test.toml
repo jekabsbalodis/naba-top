@@ -4,3 +4,12 @@ path = "database/database-test.duckdb"
 [flows]
 url = "https://www.example.com"
 email = "mail@example.com"
+
+[auth]
+client_id = "123-abc"
+server_metadata_url = "https://auth.example.com/.well-known/openid-configuration"
+callback_url = "http://localhost:8080/auth"
+session_secret = "very-secret-secret"
+storage_secret = "another-secret-secret"
+host = "localhost"
+port = 8080

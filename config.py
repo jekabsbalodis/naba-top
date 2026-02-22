@@ -34,10 +34,24 @@ class Config(BaseModel):
     DB_PATH: Annotated[Path | str, AfterValidator(validate_db_path)]
     FLOW_URL: HttpUrl
     FLOW_EMAIL: EmailStr
+    CLIENT_ID: str
+    SERVER_METADATA_URL: str
+    CALLBACK_URL: str
+    SESSION_SECRET: str
+    STORAGE_SECRET: str
+    HOST: str
+    PORT: int
 
 
 config = Config(
     DB_PATH=_config['db']['path'],
     FLOW_URL=_config['flows']['url'],
     FLOW_EMAIL=_config['flows']['email'],
+    CLIENT_ID=_config['auth']['client_id'],
+    SERVER_METADATA_URL=_config['auth']['server_metadata_url'],
+    CALLBACK_URL=_config['auth']['callback_url'],
+    SESSION_SECRET=_config['auth']['session_secret'],
+    STORAGE_SECRET=_config['auth']['storage_secret'],
+    HOST=_config['auth']['host'],
+    PORT=_config['auth']['port'],
 )
