@@ -64,22 +64,25 @@ def parse_chart_data(soup: ResultSet[Tag]) -> list[ChartEntry]:
             song_id = song_id_res[0]
 
             place_tag = song.select_one('.songPlace')
-            if place_tag is not None:
-                try:
-                    place: int | None = int(place_tag.text)
-                except ValueError:
-                    place = None
+            if place_tag is None:
+                raise LookupError(
+                    f'Song {web_songname} has no place tag, check webpage for errors.'
+                )
+            try:
+                place: int | None = int(place_tag.text)
+            except ValueError:
+                place = None
 
             with duckdb.connect(config.DB_PATH) as conn:
                 old_entry_res = conn.sql(
                     """-- sql
-                                         select
-                                             1
-                                         from
-                                             charts
-                                         where
-                                             song_id = ?;
-                                         """,
+                    select
+                        1
+                    from
+                        charts
+                    where
+                        song_id = ?;
+                    """,
                     params=[song_id],
                 ).fetchone()
 
