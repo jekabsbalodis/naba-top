@@ -38,6 +38,7 @@ class TopEntry:
 
 @dataclass
 class RankedSongEntry:
+    place: int
     song_id: int
     artist: str
     song_name: str
