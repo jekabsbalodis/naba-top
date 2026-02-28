@@ -8,9 +8,20 @@ from pydantic import AfterValidator, BaseModel, EmailStr, HttpUrl
 
 basedir = Path(__file__).resolve().parent
 
-IS_TESTING = os.getenv('TESTING', 'false').lower() == 'true'
+NABA_TOP_ENV = os.getenv('NABA_TOP_ENV', 'prod').lower()
 
-config_file = 'config.test.toml' if IS_TESTING else 'config.toml'
+config_map: dict[str, str] = {
+    'prod': 'config.toml',
+    'test': 'config.test.toml',
+    'dev': 'config.dev.toml',
+}
+
+try:
+    config_file = config_map[NABA_TOP_ENV]
+except KeyError as ke:
+    raise ValueError(
+        f'Invalid ENV {NABA_TOP_ENV}. Must be one of {list(config_map.keys())}'
+    ) from ke
 
 try:
     with open(basedir / config_file, 'rb') as f:
@@ -53,6 +64,7 @@ config = Config(
     FLOW_EMAIL=_config['flows']['email'],
     CLIENT_ID=_config['auth']['client_id'],
     SERVER_METADATA_URL=_config['auth']['server_metadata_url'],
+    EXPECTED_ISSUER=_config['auth']['expected_issuer'],
     CALLBACK_URL=_config['auth']['callback_url'],
     SESSION_SECRET=_config['auth']['session_secret'],
     STORAGE_SECRET=_config['auth']['storage_secret'],

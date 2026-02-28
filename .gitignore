@@ -18,6 +18,7 @@ wheels/
 
 # Config
 config.toml
+config.dev.toml
 
 # Coverage
 .coverage
