@@ -22,21 +22,25 @@ except FileNotFoundError as e:
 
 
 def validate_db_path(v: Path | str) -> Path | str:
-    if v == ':memory:':
-        return v
     p = (basedir / v).resolve()
     if not p.parent.exists():
         raise FileNotFoundError(f'DB path does not exist - {p}')
     return p
 
 
+def validate_httpurl(v: str) -> str:
+    HttpUrl(v)
+    return v
+
+
 class Config(BaseModel):
-    DB_PATH: Annotated[Path | str, AfterValidator(validate_db_path)]
-    FLOW_URL: HttpUrl
+    DB_PATH: Annotated[Path, AfterValidator(validate_db_path)]
+    FLOW_URL: Annotated[str, AfterValidator(validate_httpurl)]
     FLOW_EMAIL: EmailStr
     CLIENT_ID: str
-    SERVER_METADATA_URL: str
-    CALLBACK_URL: str
+    SERVER_METADATA_URL: Annotated[str, AfterValidator(validate_httpurl)]
+    EXPECTED_ISSUER: Annotated[str, AfterValidator(validate_httpurl)]
+    CALLBACK_URL: Annotated[str, AfterValidator(validate_httpurl)]
     SESSION_SECRET: str
     STORAGE_SECRET: str
     HOST: str

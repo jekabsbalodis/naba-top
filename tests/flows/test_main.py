@@ -3,6 +3,7 @@ from unittest.mock import MagicMock, patch
 import duckdb
 import httpx
 import pytest
+from pydantic import HttpUrl
 
 from config import config
 from database.init_db import init_db
@@ -73,7 +74,7 @@ def mock_http():
     response = httpx.Response(
         status_code=200,
         content=NABA_HTML,
-        request=httpx.Request('GET', str(config.FLOW_URL)),
+        request=httpx.Request('GET', config.FLOW_URL),
     )
     with patch('flows.shared_tasks.httpx.Client') as mock_client_cls:
         client = MagicMock()
@@ -86,29 +87,29 @@ def mock_http():
 
 class TestMainFlow:
     def test_runs_without_error(self):
-        main_flow.fn(config.FLOW_URL, config.FLOW_EMAIL)
+        main_flow.fn(HttpUrl(config.FLOW_URL), config.FLOW_EMAIL)
 
     def test_songs_are_inserted(self):
-        main_flow.fn(config.FLOW_URL, config.FLOW_EMAIL)
+        main_flow.fn(HttpUrl(config.FLOW_URL), config.FLOW_EMAIL)
         with duckdb.connect(config.DB_PATH) as conn:
             count = conn.sql('select count(*) from songs').fetchone()
         assert count is not None
         assert count[0] == 45
 
     def test_charts_are_inserted(self):
-        main_flow.fn(config.FLOW_URL, config.FLOW_EMAIL)
+        main_flow.fn(HttpUrl(config.FLOW_URL), config.FLOW_EMAIL)
         with duckdb.connect(config.DB_PATH) as conn:
             count = conn.sql('select count(*) from charts').fetchone()
         assert count is not None
         assert count[0] == 45
 
     def test_idempotent_on_second_run(self):
-        main_flow.fn(config.FLOW_URL, config.FLOW_EMAIL)
+        main_flow.fn(HttpUrl(config.FLOW_URL), config.FLOW_EMAIL)
         with duckdb.connect(config.DB_PATH) as conn:
             songs_first = conn.sql('select count(*) from songs').fetchone()
             charts_first = conn.sql('select count(*) from charts').fetchone()
 
-        main_flow.fn(config.FLOW_URL, config.FLOW_EMAIL)
+        main_flow.fn(HttpUrl(config.FLOW_URL), config.FLOW_EMAIL)
         with duckdb.connect(config.DB_PATH) as conn:
             songs_second = conn.sql('select count(*) from songs').fetchone()
             charts_second = conn.sql('select count(*) from charts').fetchone()

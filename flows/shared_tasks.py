@@ -16,7 +16,7 @@ def fetch_webpage(url: HttpUrl, email: EmailStr) -> httpx.Response:
         'accept': 'text/html',
     }
     with httpx.Client(headers=headers) as client:
-        response = client.get(url=str(url))
+        response = client.get(url=url.unicode_string())
     response.raise_for_status()
     return response
 
