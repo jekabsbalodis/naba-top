@@ -54,7 +54,7 @@ def _is_valid(user: dict) -> bool:
             return False
 
         iss = user.get('iss')
-        if iss and not iss.startswith('https://auth.balodis.id.lv'):
+        if iss and not iss == config.EXPECTED_ISSUER:
             return False
 
         return True
@@ -80,12 +80,12 @@ def setup_auth():
     app.add_middleware(AuthMiddleware)  # ty:ignore[invalid-argument-type]
 
     @app.get('/login')
-    async def login(request: Request):  # pyright: ignore[reportUnusedFunction]
+    async def login(request: Request):
         redirect_uri = config.CALLBACK_URL
         return await oauth.pocketid.authorize_redirect(request, redirect_uri)
 
     @app.get('/auth')
-    async def auth(request: Request):  # pyright: ignore[reportUnusedFunction]
+    async def auth(request: Request):
         try:
             token = await oauth.pocketid.authorize_access_token(request)
         except OAuthError as e:
@@ -97,6 +97,6 @@ def setup_auth():
         return RedirectResponse(url='/')
 
     @app.get('/logout')
-    async def logout(request: Request):  # pyright: ignore[reportUnusedFunction]
+    async def logout(request: Request):
         request.session.clear()
         return RedirectResponse(url='/')
