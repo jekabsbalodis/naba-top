@@ -22,3 +22,6 @@ config.dev.toml
 
 # Coverage
 .coverage
+
+# NiceGUI
+.nicegui/

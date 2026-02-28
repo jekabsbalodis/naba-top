@@ -8,7 +8,7 @@ from config import config
 
 @ui.page('/')
 def home() -> None:
-    with frame('Hello'):
+    with frame():
         ui.label('test')
 
 
