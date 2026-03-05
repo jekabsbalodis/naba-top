@@ -7,7 +7,7 @@ from app.data.get_data import get_view
 from app.utils.format import get_date_string
 
 
-@st.cache_data
+@st.cache_data(ttl=60 * 60 * 24, show_spinner=False)
 def _get_latest_charts(week: date) -> tuple[pl.DataFrame, pl.DataFrame]:
     top_10_df = get_view(view='top10')
     top_25_df = get_view(view='top25')
@@ -20,7 +20,7 @@ def _get_latest_charts(week: date) -> tuple[pl.DataFrame, pl.DataFrame]:
     return top_10_df, top_25_df
 
 
-@st.cache_data
+@st.cache_data(ttl=60 * 60 * 24, show_spinner=False)
 def _get_latest_week() -> date:
     charts = get_view(view='charts')
 
@@ -79,7 +79,7 @@ def home() -> None:
         )
         st.dataframe(
             top10,
-            height='stretch',
+            height=35 * len(top10) + 38,
             hide_index=True,
             placeholder='-',
             column_config=column_config,
@@ -92,7 +92,7 @@ def home() -> None:
         )
         st.dataframe(
             top25,
-            height='stretch',
+            height=35 * len(top25) + 38,
             hide_index=True,
             placeholder='-',
             column_config=column_config,
