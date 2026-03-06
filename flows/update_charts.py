@@ -7,7 +7,6 @@ from dateutil.parser import parse
 from prefect import flow, task
 from prefect.cache_policies import NO_CACHE
 
-from config import config
 from models import ChartEntry, ChartType
 
 
@@ -18,7 +17,7 @@ def extract_chart_elements(soup: BeautifulSoup) -> ResultSet[Tag]:
 
 
 @task(cache_policy=NO_CACHE)
-def parse_chart_data(soup: ResultSet[Tag]) -> list[ChartEntry]:
+def parse_chart_data(soup: ResultSet[Tag], db_path: str) -> list[ChartEntry]:
     """Parse the part of the html page that contains information
     about charts - songs, the chart they are in and the place"""
     top10, top25 = soup
@@ -38,7 +37,7 @@ def parse_chart_data(soup: ResultSet[Tag]) -> list[ChartEntry]:
         week: date = parse(week_tag.text, dayfirst=True).date()
 
         for song in top:
-            with duckdb.connect(config.DB_PATH) as conn:
+            with duckdb.connect(db_path) as conn:
                 web_songname_tag = song.select_one('.songName')
                 if web_songname_tag is None:
                     raise LookupError(
@@ -73,7 +72,7 @@ def parse_chart_data(soup: ResultSet[Tag]) -> list[ChartEntry]:
             except ValueError:
                 place = None
 
-            with duckdb.connect(config.DB_PATH) as conn:
+            with duckdb.connect(db_path) as conn:
                 old_entry_res = conn.sql(
                     """-- sql
                     select
@@ -143,9 +142,9 @@ def create_charts_df(chart_entries: list[ChartEntry]) -> pl.DataFrame:
 
 
 @task
-def insert_chart_data_into_db(_new_chart_data: pl.DataFrame) -> None:
+def insert_chart_data_into_db(_new_chart_data: pl.DataFrame, db_path: str) -> None:
     """Write the dataframe of new chart data into database"""
-    with duckdb.connect(config.DB_PATH) as conn:
+    with duckdb.connect(db_path) as conn:
         conn.execute(
             """-- sql
             insert or ignore into charts (
@@ -158,12 +157,12 @@ def insert_chart_data_into_db(_new_chart_data: pl.DataFrame) -> None:
 
 
 @flow
-def update_charts_flow(soup: BeautifulSoup) -> None:
+def update_charts_flow(soup: BeautifulSoup, db_path: str) -> None:
     """Main flow to fetch the webpage, parse html, extract chart entries' elements
     and parse chart entries' data, load existing chart data to filter only new data
     and finaly insert chart data into database."""
     chart_soup = extract_chart_elements(soup=soup)
-    charts = parse_chart_data(soup=chart_soup)
+    charts = parse_chart_data(soup=chart_soup, db_path=db_path)
     validate_charts_count(chart_entries=charts)
     charts_df = create_charts_df(charts)
-    insert_chart_data_into_db(charts_df)
+    insert_chart_data_into_db(charts_df, db_path)

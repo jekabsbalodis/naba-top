@@ -4,7 +4,6 @@ from bs4 import BeautifulSoup, ResultSet, Tag
 from prefect import flow, task
 from prefect.cache_policies import NO_CACHE
 
-from config import config
 from models import Song
 
 
@@ -45,9 +44,9 @@ def create_songs_df(song_list: list[Song]) -> pl.DataFrame:
 
 
 @task
-def insert_songs_into_db(_new_songs: pl.DataFrame) -> None:
+def insert_songs_into_db(_new_songs: pl.DataFrame, db_path: str) -> None:
     """Write the dataframe of new songs into database"""
-    with duckdb.connect(config.DB_PATH) as conn:
+    with duckdb.connect(db_path) as conn:
         conn.execute(
             """-- sql
             insert or ignore into songs (artist, song_name, web_songname) (
@@ -58,11 +57,11 @@ def insert_songs_into_db(_new_songs: pl.DataFrame) -> None:
 
 
 @flow
-def update_songs_flow(soup: BeautifulSoup) -> None:
+def update_songs_flow(soup: BeautifulSoup, db_path: str) -> None:
     """Main flow to fetch the webpage, parse html, extract song elements
     and parse song data, load existing songs to filter only new songs
     and finaly insert songs into database."""
     song_soup = extract_song_elements(soup=soup)
     songs = parse_song_data(soup=song_soup)
     songs_df = create_songs_df(songs)
-    insert_songs_into_db(songs_df)
+    insert_songs_into_db(songs_df, db_path)
