@@ -17,7 +17,7 @@ pull:
   - prefect.deployments.steps.git_clone:
       repository: https://codeberg.org/clear9550/naba-top.git
   - prefect.deployments.steps.set_working_directory:
-      directory: /home/jekabs/git/naba-top
+      directory: /home/jekabs/prefect-workers/default-worker/naba-top
 
 # the deployments section allows you to provide configuration for deploying flows
 deployments:
