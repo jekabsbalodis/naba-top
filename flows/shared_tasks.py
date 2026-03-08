@@ -36,7 +36,13 @@ def upload_data(
     """
     Upload the data in database to an S3 storage
     """
-    with s3_connection(db_path, key_id, secret, endpoint, region) as conn:
+    with s3_connection(
+        db_path=db_path,
+        key_id=key_id,
+        secret=secret,
+        endpoint=endpoint,
+        region=region,
+    ) as conn:
         conn.execute(
             """ --sql
 
