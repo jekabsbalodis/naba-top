@@ -2,14 +2,13 @@ from dataclasses import fields
 
 import duckdb
 
-from config import config
 from database.init_db import init_db
 from models import ChartEntry, RankedSongEntry, Song, TopEntry
 
 
-def test_column_names_match_models():
-    init_db()
-    with duckdb.connect(config.DB_PATH) as conn:
+def test_column_names_match_models(db_path):
+    init_db(db_path)
+    with duckdb.connect(db_path) as conn:
         table_songs = conn.sql('describe songs;').fetchall()
         table_charts = conn.sql('describe charts;').fetchall()
         view_top10 = conn.sql('describe top10;').fetchall()

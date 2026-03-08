@@ -3,7 +3,6 @@ import polars as pl
 import pytest
 from bs4 import BeautifulSoup, ResultSet
 
-from config import config
 from database.init_db import init_db
 from flows.update_songs import (
     create_songs_df,
@@ -59,11 +58,11 @@ def songs_df(song_list) -> pl.DataFrame:
 
 
 @pytest.fixture(autouse=True)
-def setup_db():
+def setup_db(db_path):
     """Initialize test DB before each test and clean songs table after"""
-    init_db()
+    init_db(db_path)
     yield
-    with duckdb.connect(config.DB_PATH) as conn:
+    with duckdb.connect(db_path) as conn:
         conn.execute('delete from songs')
 
 
@@ -132,24 +131,24 @@ class TestCreateSongsDf:
 
 
 class TestInsertSongsIntoDb:
-    def test_inserts_songs(self, songs_df):
-        insert_songs_into_db.fn(songs_df)
-        with duckdb.connect(config.DB_PATH) as conn:
+    def test_inserts_songs(self, songs_df, db_path):
+        insert_songs_into_db.fn(songs_df, db_path)
+        with duckdb.connect(db_path) as conn:
             count = conn.sql('select count(*) from songs').fetchone()
         assert count is not None
         assert count[0] == 3
 
-    def test_ignores_duplicates(self, songs_df):
-        insert_songs_into_db.fn(songs_df)
-        insert_songs_into_db.fn(songs_df)
-        with duckdb.connect(config.DB_PATH) as conn:
+    def test_ignores_duplicates(self, songs_df, db_path):
+        insert_songs_into_db.fn(songs_df, db_path)
+        insert_songs_into_db.fn(songs_df, db_path)
+        with duckdb.connect(db_path) as conn:
             count = conn.sql('select count(*) from songs').fetchone()
         assert count is not None
         assert count[0] == 3
 
-    def test_inserts_correct_values(self, songs_df):
-        insert_songs_into_db.fn(songs_df)
-        with duckdb.connect(config.DB_PATH) as conn:
+    def test_inserts_correct_values(self, songs_df, db_path):
+        insert_songs_into_db.fn(songs_df, db_path)
+        with duckdb.connect(db_path) as conn:
             row = conn.sql(
                 """-- sql
                 select
