@@ -1,9 +1,10 @@
-import duckdb
 import httpx
 from bs4 import BeautifulSoup
 from prefect import task
 from prefect.tasks import exponential_backoff
 from pydantic import HttpUrl
+
+from database.s3_connection import s3_connection
 
 
 @task(
@@ -35,21 +36,9 @@ def upload_data(
     """
     Upload the data in database to an S3 storage
     """
-    with duckdb.connect(db_path, read_only=True) as conn:
+    with s3_connection(db_path, key_id, secret, endpoint, region) as conn:
         conn.execute(
             """ --sql
-            install httpfs;
-
-            load httpfs;
-
-            create or replace secret (
-                type s3,
-                key_id '?',
-                secret '?',
-                endpoint '?',
-                region '?',
-                url_style 'path'
-                );
 
             copy
                 (select * from all_songs_ranked)
@@ -76,5 +65,4 @@ def upload_data(
             to 's3://naba-top/songs.parquet'
                 (format parquet, overwrite_or_ignore true);
         """,
-            parameters=[key_id, secret, endpoint, region],
         )

@@ -12,6 +12,7 @@ region = st.secrets['garage']['region']
 
 @contextmanager
 def s3_connection(
+    db_path: str = ':memory:',
     key_id: str = key_id,
     secret: str = secret,
     endpoint: str = endpoint,
@@ -19,7 +20,7 @@ def s3_connection(
 ) -> Generator[duckdb.DuckDBPyConnection]:
     """Make an s3 connection with a configured secret
     to successfully connect to garage bucket."""
-    conn = duckdb.connect()
+    conn = duckdb.connect(db_path)
     try:
         conn.execute(
             """--sql
