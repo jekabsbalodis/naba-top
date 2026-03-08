@@ -1,11 +1,9 @@
 import duckdb
 
-from config import config
 
-
-def init_db() -> None:
+def init_db(db_path: str) -> None:
     """Create the database sequences and tables"""
-    with duckdb.connect(config.DB_PATH) as conn:
+    with duckdb.connect(db_path) as conn:
         conn.execute("""-- sql
         -- Create the table where the songs will be stored
         CREATE SEQUENCE IF NOT EXISTS song_id_sequence START 1;
@@ -128,4 +126,6 @@ def init_db() -> None:
 
 
 if __name__ == '__main__':
-    init_db()
+    import typer
+
+    typer.run(init_db)

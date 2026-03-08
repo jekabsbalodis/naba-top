@@ -26,6 +26,7 @@ dev = [
   "sqlfluff>=3.5.0",
   "tombi>=0.6.17",
   "ty>=0.0.1a21",
+  "typer>=0.24.1",
 ]
 
 [tool.basedpyright]

@@ -37,7 +37,7 @@ def parse_chart_data(soup: ResultSet[Tag], db_path: str) -> list[ChartEntry]:
         week: date = parse(week_tag.text, dayfirst=True).date()
 
         for song in top:
-            with duckdb.connect(db_path) as conn:
+            with duckdb.connect(db_path, read_only=True) as conn:
                 web_songname_tag = song.select_one('.songName')
                 if web_songname_tag is None:
                     raise LookupError(
@@ -72,7 +72,7 @@ def parse_chart_data(soup: ResultSet[Tag], db_path: str) -> list[ChartEntry]:
             except ValueError:
                 place = None
 
-            with duckdb.connect(db_path) as conn:
+            with duckdb.connect(db_path, read_only=True) as conn:
                 old_entry_res = conn.sql(
                     """-- sql
                     select
