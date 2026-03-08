@@ -1,4 +1,5 @@
 import asyncio
+import os
 from pathlib import Path
 
 from prefect import flow
@@ -48,7 +49,7 @@ def main_flow(
     s3_region: str | None = None,
 ) -> None:
     """Main flow that orchestrates updating songs and charts table in db"""
-    path = db_path or _load_variable('db_path')
+    database_path = db_path or _load_variable('db_path')
     flow_url = url or _load_variable('flow_url')
     flow_email = email or _load_secret('flow-email')
     key_id = s3_key_id or _load_secret('garage-key-id')
@@ -59,6 +60,11 @@ def main_flow(
     flow_url = _validate_url(flow_url)
     endpoint = _validate_url(endpoint)
     flow_email = _validate_email(flow_email)
+
+    data_dir = os.environ.get('NABA_TOP_DATA_DIR')
+    if data_dir is None:
+        raise LookupError('Environment variable for data dir is not set.')
+    path = str(Path(data_dir) / database_path)
     path = _validate_db_path(path)
 
     response = fetch_webpage(flow_url, flow_email)
