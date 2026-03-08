@@ -4,7 +4,6 @@ from pathlib import Path
 
 from prefect import flow
 from prefect.blocks.system import Secret
-from prefect.logging import get_run_logger
 from prefect.variables import Variable
 from pydantic import EmailStr, HttpUrl, TypeAdapter
 
@@ -58,12 +57,7 @@ def main_flow(
     endpoint = s3_endpoint or _load_secret('garage-endpoint')
     region = s3_region or _load_secret('garage-region')
 
-    logger = get_run_logger()
-    logger.info(flow_url)
-    logger.info(flow_email)
-    logger.info(endpoint)
     flow_url = _validate_url(flow_url)
-    endpoint = _validate_url(endpoint)
     flow_email = _validate_email(flow_email)
 
     data_dir = os.environ.get('NABA_TOP_DATA_DIR')
@@ -71,7 +65,6 @@ def main_flow(
         raise LookupError('Environment variable for data dir is not set.')
     path = str(Path(data_dir) / database_path)
 
-    logger.info(path)
     path = _validate_db_path(path)
 
     response = fetch_webpage(flow_url, flow_email)
