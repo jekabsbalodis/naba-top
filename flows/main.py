@@ -6,7 +6,7 @@ from prefect.blocks.system import Secret
 from prefect.variables import Variable
 from pydantic import EmailStr, HttpUrl, TypeAdapter
 
-from flows.shared_tasks import fetch_webpage, parse_html
+from flows.shared_tasks import fetch_webpage, parse_html, upload_data
 from flows.update_charts import update_charts_flow
 from flows.update_songs import update_songs_flow
 
@@ -42,13 +42,22 @@ def main_flow(
     db_path: str | None = None,
     url: str | None = None,
     email: str | None = None,
+    s3_key_id: str | None = None,
+    s3_secret: str | None = None,
+    s3_endpoint: str | None = None,
+    s3_region: str | None = None,
 ) -> None:
     """Main flow that orchestrates updating songs and charts table in db"""
     path = db_path or _load_variable('db_path')
     flow_url = url or _load_variable('flow_url')
     flow_email = email or _load_secret('flow-email')
+    key_id = s3_key_id or _load_secret('garage-key-id')
+    secret = s3_secret or _load_variable('garage-secret')
+    endpoint = s3_endpoint or _load_variable('garage-endpoint')
+    region = s3_region or _load_variable('garage-region')
 
     flow_url = _validate_url(flow_url)
+    endpoint = _validate_url(endpoint)
     flow_email = _validate_email(flow_email)
     path = _validate_db_path(path)
 
@@ -57,6 +66,8 @@ def main_flow(
 
     update_songs_flow(soup, path)
     update_charts_flow(soup, path)
+
+    upload_data(path, key_id, secret, endpoint, region)
 
 
 if __name__ == '__main__':
