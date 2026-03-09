@@ -19,7 +19,6 @@ dependencies = [
 
 [dependency-groups]
 dev = [
-  "basedpyright>=1.31.6",
   "pytest>=8.4.2",
   "pytest-coverage>=0.0",
   "ruff>=0.13.2",
@@ -50,6 +49,7 @@ quote-style = "single"
 
 [tool.ruff.lint]
 select = [
+  "D",  # pydocstyle
   "E",  # pycodestyle error
   "W",  # pycodestyle warning
   "F",  # pyflakes

@@ -1,3 +1,8 @@
+"""Module for utility functions.
+
+The module provides functions to format dates and other data.
+"""
+
 from datetime import date
 
 from babel import Locale
@@ -7,5 +12,13 @@ _locale = Locale('lv')
 
 
 def get_date_string(date: date) -> str:
-    """Format a date object to string in Latvian locale."""
+    """Format a date object to string in Latvian locale.
+
+    Args:
+        date: the date object to format to a string.
+
+    Returns:
+        The formatted date.
+
+    """
     return format_date(date, format='long', locale=_locale)

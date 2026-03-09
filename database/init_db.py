@@ -1,8 +1,19 @@
+"""Module for database initialization.
+
+Creates and initializes DuckDB database schema - tables, sequences, indexes and views.
+"""
+
 import duckdb
 
 
 def init_db(db_path: str) -> None:
-    """Create the database sequences and tables"""
+    """Create the database sequences and tables.
+
+    Args:
+      db_path: The path to the database file.
+      Use ':memory:' to initialize an in-memory database.
+
+    """
     with duckdb.connect(db_path) as conn:
         conn.execute("""-- sql
         -- Create the table where the songs will be stored

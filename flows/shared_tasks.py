@@ -1,3 +1,5 @@
+"""Module containing Prefect tasks shared between subflows."""
+
 import httpx
 from bs4 import BeautifulSoup
 from prefect import task
@@ -12,7 +14,19 @@ from database.s3_connection import s3_connection
     retry_delay_seconds=exponential_backoff(backoff_factor=3),
 )
 def fetch_webpage(url: str, email: str) -> httpx.Response:
-    """Read naba.lv webpage and return httpx response"""
+    """Fetch webpage content with retry logic.
+
+    Args:
+        url: URL of the web page to fetch.
+        email: Email address to include in request headers.
+
+    Returns:
+        HTTP response object.
+
+    Raises:
+        HTTP response error if request fails with 4xx or 5xx error.
+
+    """
     headers = {
         'user-agent': f'python-httpx {str(email)}',
         'accept': 'text/html',
@@ -25,7 +39,15 @@ def fetch_webpage(url: str, email: str) -> httpx.Response:
 
 @task
 def parse_html(res: httpx.Response) -> BeautifulSoup:
-    """Parse the returned response HTML text"""
+    """Parse HTML content into BeautifulSoup object.
+
+    Args:
+        res: HTTP response with HTML content.
+
+    Returns:
+        Parsed HTML document.
+
+    """
     return BeautifulSoup(res.text, 'lxml')
 
 
@@ -33,8 +55,19 @@ def parse_html(res: httpx.Response) -> BeautifulSoup:
 def upload_data(
     db_path: str, key_id: str, secret: str, endpoint: str, region: str
 ) -> None:
-    """
-    Upload the data in database to an S3 storage
+    """Upload database tables and views to S3 storage in Parquet format.
+
+    Args:
+        db_path: Path to the DuckDB database file.
+        key_id: S3 access key id.
+        secret: S3 secret access key.
+        endpoint: S3 endpoint URL.
+        region: S3 bucket region.
+
+    Note:
+        Uploads the following tables/views: all_songs_ranked,
+        top10, top25, charts, songs.
+
     """
     with s3_connection(
         db_path=db_path,

@@ -1,3 +1,5 @@
+"""Module for creating the home page of the Streamlit app."""
+
 import streamlit as st
 
 from app.data.get_data import get_chart, get_date_range
@@ -5,6 +7,7 @@ from app.utils.format import get_date_string
 
 
 def home() -> None:
+    """Create the home page of the app."""
     _, week = get_date_range()
     week_str = get_date_string(week)
     top10, top25 = get_chart(week)

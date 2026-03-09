@@ -1,3 +1,5 @@
+"""Module for UI widget components."""
+
 from datetime import date, timedelta
 
 import streamlit as st
@@ -10,9 +12,19 @@ def shared_slider(
     default: date,
     key: str = StateKeys.SELECTED_WEEK,
 ):
-    """
-    Create a slider with predefined min and max value, set desired default value.
-    Reuse the slider's value on another page.
+    """Create a slider with preconfigured parameters.
+
+    Args:
+        default: The default value to set for the slider.
+        key: Value from StateKeys StrEnum to which this slider should be tied to.
+
+    Returns:
+        Streamlit slider widget.
+
+    Note:
+        The widget's key is similar to corresponding session state key,
+        but have a prefixed '_'.
+
     """
     min_date, max_date = get_date_range()
     slider = st.slider(

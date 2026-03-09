@@ -1,3 +1,11 @@
+"""Main workflow of the data processing.
+
+Orchestrates the data pipeline:
+- Fetching webpage.
+- Updating songs and charts.
+- Uploading data to S3 storage.
+"""
+
 import asyncio
 import os
 from pathlib import Path
@@ -48,7 +56,18 @@ def main_flow(
     s3_endpoint: str | None = None,
     s3_region: str | None = None,
 ) -> None:
-    """Main flow that orchestrates updating songs and charts table in db"""
+    """Orchestrate the main flow of the pipeline.
+
+    Args:
+        db_path: Path to the database in which to insert the data.
+        url: Link to the for scrapping.
+        email: Email address that will be included in the request headers.
+        s3_key_id: Key id for the database secret.
+        s3_secret: Secret value for the database secret.
+        s3_endpoint: Bucket endpoint for the database secret.
+        s3_region: Bucket region for the database secret.
+
+    """
     database_path = db_path or _load_variable('db_path')
     flow_url = url or _load_variable('flow_url')
     flow_email = email or _load_secret('flow-email')
