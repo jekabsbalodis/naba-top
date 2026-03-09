@@ -16,10 +16,6 @@ wheels/
 # Aider
 .aider*
 
-# Config
-config.toml
-config.dev.toml
-
 # Coverage
 .coverage
 
