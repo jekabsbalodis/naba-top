@@ -3,9 +3,7 @@ from unittest.mock import MagicMock, patch
 import duckdb
 import httpx
 import pytest
-from pydantic import HttpUrl
 
-from config import config
 from database.init_db import init_db
 from flows.main import main_flow
 
@@ -61,20 +59,20 @@ NABA_HTML = f"""
 
 
 @pytest.fixture(autouse=True)
-def setup_db():
-    init_db()
+def setup_db(db_path):
+    init_db(db_path)
     yield
-    with duckdb.connect(config.DB_PATH) as conn:
+    with duckdb.connect(db_path) as conn:
         conn.execute('delete from charts')
         conn.execute('delete from songs')
 
 
 @pytest.fixture(autouse=True)
-def mock_http():
+def mock_http(flow_url):
     response = httpx.Response(
         status_code=200,
         content=NABA_HTML,
-        request=httpx.Request('GET', config.FLOW_URL),
+        request=httpx.Request('GET', flow_url),
     )
     with patch('flows.shared_tasks.httpx.Client') as mock_client_cls:
         client = MagicMock()
@@ -85,32 +83,48 @@ def mock_http():
         yield
 
 
-class TestMainFlow:
-    def test_runs_without_error(self):
-        main_flow.fn(HttpUrl(config.FLOW_URL), config.FLOW_EMAIL)
+@pytest.fixture(autouse=True)
+def mock_upload():
+    with patch('flows.shared_tasks.s3_connection', return_value=MagicMock()) as mock:
+        yield mock
 
-    def test_songs_are_inserted(self):
-        main_flow.fn(HttpUrl(config.FLOW_URL), config.FLOW_EMAIL)
-        with duckdb.connect(config.DB_PATH) as conn:
+
+class TestMainFlow:
+    def test_runs_without_error(self, db_path, flow_url, flow_email, s3_config):
+        main_flow.fn(
+            db_path=db_path, url=flow_url, email=flow_email, s3_config=s3_config
+        )
+
+    def test_songs_are_inserted(self, db_path, flow_url, flow_email, s3_config):
+        main_flow.fn(
+            db_path=db_path, url=flow_url, email=flow_email, s3_config=s3_config
+        )
+        with duckdb.connect(db_path) as conn:
             count = conn.sql('select count(*) from songs').fetchone()
         assert count is not None
         assert count[0] == 45
 
-    def test_charts_are_inserted(self):
-        main_flow.fn(HttpUrl(config.FLOW_URL), config.FLOW_EMAIL)
-        with duckdb.connect(config.DB_PATH) as conn:
+    def test_charts_are_inserted(self, db_path, flow_url, flow_email, s3_config):
+        main_flow.fn(
+            db_path=db_path, url=flow_url, email=flow_email, s3_config=s3_config
+        )
+        with duckdb.connect(db_path) as conn:
             count = conn.sql('select count(*) from charts').fetchone()
         assert count is not None
         assert count[0] == 45
 
-    def test_idempotent_on_second_run(self):
-        main_flow.fn(HttpUrl(config.FLOW_URL), config.FLOW_EMAIL)
-        with duckdb.connect(config.DB_PATH) as conn:
+    def test_idempotent_on_second_run(self, db_path, flow_url, flow_email, s3_config):
+        main_flow.fn(
+            db_path=db_path, url=flow_url, email=flow_email, s3_config=s3_config
+        )
+        with duckdb.connect(db_path) as conn:
             songs_first = conn.sql('select count(*) from songs').fetchone()
             charts_first = conn.sql('select count(*) from charts').fetchone()
 
-        main_flow.fn(HttpUrl(config.FLOW_URL), config.FLOW_EMAIL)
-        with duckdb.connect(config.DB_PATH) as conn:
+        main_flow.fn(
+            db_path=db_path, url=flow_url, email=flow_email, s3_config=s3_config
+        )
+        with duckdb.connect(db_path) as conn:
             songs_second = conn.sql('select count(*) from songs').fetchone()
             charts_second = conn.sql('select count(*) from charts').fetchone()
 

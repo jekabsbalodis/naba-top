@@ -46,3 +46,11 @@ class RankedSongEntry:
     raw_points: int
     score: Decimal
     chart_type: str
+
+
+@dataclass
+class S3Config:
+    key_id: str
+    secret: str
+    endpoint: str
+    region: str

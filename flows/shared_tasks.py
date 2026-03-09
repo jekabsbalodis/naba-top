@@ -4,6 +4,9 @@ from prefect import task
 from prefect.tasks import exponential_backoff
 from pydantic import HttpUrl
 
+from database.s3_connection import s3_connection
+from models import S3Config
+
 
 @task(
     retries=5,
@@ -25,3 +28,40 @@ def fetch_webpage(url: str, email: str) -> httpx.Response:
 def parse_html(res: httpx.Response) -> BeautifulSoup:
     """Parse the returned response HTML text"""
     return BeautifulSoup(res.text, 'lxml')
+
+
+@task
+def upload_data(db_path: str, s3_config: S3Config) -> None:
+    """
+    Upload the data in database to an S3 storage
+    """
+    with s3_connection(db_path=db_path, s3_config=s3_config) as conn:
+        conn.execute(
+            """ --sql
+
+            copy
+                (select * from all_songs_ranked)
+            to 's3://naba-top/all_songs_ranked.parquet'
+                (format parquet, overwrite_or_ignore true);
+
+            copy
+                (select * from top10)
+            to 's3://naba-top/top10.parquet'
+                (format parquet, overwrite_or_ignore true);
+
+            copy
+                (select * from top25)
+            to 's3://naba-top/top25.parquet'
+                (format parquet, overwrite_or_ignore true);
+
+            copy
+                (select * from charts)
+            to 's3://naba-top/charts.parquet'
+                (format parquet, overwrite_or_ignore true);
+
+            copy
+                (select * from songs)
+            to 's3://naba-top/songs.parquet'
+                (format parquet, overwrite_or_ignore true);
+        """,
+        )

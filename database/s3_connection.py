@@ -2,24 +2,18 @@ from collections.abc import Generator
 from contextlib import contextmanager
 
 import duckdb
-import streamlit as st
 
-key_id = st.secrets['garage']['key_id']
-secret = st.secrets['garage']['secret']
-endpoint = st.secrets['garage']['endpoint']
-region = st.secrets['garage']['region']
+from models import S3Config
 
 
 @contextmanager
 def s3_connection(
-    key_id: str = key_id,
-    secret: str = secret,
-    endpoint: str = endpoint,
-    region: str = region,
+    s3_config: S3Config,
+    db_path: str = ':memory:',
 ) -> Generator[duckdb.DuckDBPyConnection]:
     """Make an s3 connection with a configured secret
     to successfully connect to garage bucket."""
-    conn = duckdb.connect()
+    conn = duckdb.connect(db_path)
     try:
         conn.execute(
             """--sql
@@ -34,7 +28,7 @@ def s3_connection(
                url_style 'path'
              );
              """,
-            (key_id, secret, endpoint, region),
+            (s3_config.key_id, s3_config.secret, s3_config.endpoint, s3_config.region),
         )
         yield conn
 

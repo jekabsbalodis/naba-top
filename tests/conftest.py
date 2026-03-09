@@ -6,6 +6,7 @@ import pytest
 from prefect.testing.utilities import prefect_test_harness
 
 from database.init_db import init_db
+from models import S3Config
 
 
 @pytest.fixture(autouse=True, scope='session')
@@ -30,6 +31,15 @@ def flow_url() -> str:
 def flow_email() -> str:
     return 'test@example.com'
 
+
+@pytest.fixture
+def s3_config():
+    return S3Config(
+        key_id='test_id',
+        secret='test_secret',
+        endpoint='s3.example.com',
+        region='test_region',
+    )
 
 
 _temp_dir = tempfile.TemporaryDirectory()
