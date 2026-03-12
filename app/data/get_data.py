@@ -5,6 +5,7 @@ import polars as pl
 import streamlit as st
 
 from database.s3_connection import s3_connection
+from models import S3Config
 
 ViewName = Literal['songs', 'charts', 'top10', 'top25', 'all_songs_ranked']
 ALLOWED_VIEWS: frozenset[str] = frozenset(get_args(ViewName))

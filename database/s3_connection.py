@@ -29,7 +29,7 @@ def s3_connection(
                url_style 'path'
              );
              """,
-            (key_id, secret, endpoint, region),
+            (s3_config.key_id, s3_config.secret, s3_config.endpoint, s3_config.region),
         )
         yield conn
 

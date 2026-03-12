@@ -10,6 +10,33 @@ from pydantic import EmailStr, HttpUrl, TypeAdapter
 from flows.shared_tasks import fetch_webpage, parse_html, upload_data
 from flows.update_charts import update_charts_flow
 from flows.update_songs import update_songs_flow
+from models import S3Config
+
+
+def _validate_url(v: str) -> str:
+    TypeAdapter(HttpUrl).validate_python(v)
+    return v
+
+
+def _validate_email(v: str) -> str:
+    TypeAdapter(EmailStr).validate_python(v)
+    return v
+
+
+def _validate_db_path(v: str) -> str:
+    p = Path(v)
+    if not p.parent.exists():
+        raise ValueError(f'DB_PATH parent directory does not exist: {p.parent}')
+    return str(p)
+
+
+def _load_secret(secret_name: str) -> str:
+    secret = asyncio.run(Secret.aload(secret_name))
+    return secret.get()
+
+
+def _load_variable(variable_name: str) -> str:
+    return str(asyncio.run(Variable.aget(variable_name)))
 
 
 def _validate_url(v: str) -> str:

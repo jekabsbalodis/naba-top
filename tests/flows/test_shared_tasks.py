@@ -113,3 +113,33 @@ class TestParseHtml:
         )
         soup = parse_html.fn(bad_response)
         assert soup.find('p') is not None
+
+
+class TestUploadData:
+    @pytest.fixture(autouse=True)
+    def mock_s3(self):
+        with patch(
+            'flows.shared_tasks.s3_connection', return_value=MagicMock()
+        ) as mock:
+            yield mock
+
+    def test_executes_copy_statements(self, db_path, s3_config, mock_s3):
+        upload_data.fn(db_path, s3_config)
+        conn = mock_s3.return_value.__enter__.return_value
+        conn.execute.assert_called_once()
+
+    def test_copies_all_tables(self, db_path, s3_config, mock_s3):
+        upload_data.fn(db_path, s3_config)
+        conn = mock_s3.return_value.__enter__.return_value
+        sql = conn.execute.call_args.args[0]
+        for table in ['all_songs_ranked', 'top10', 'top25', 'charts', 'songs']:
+            assert table in sql
+
+    def test_passes_correct_args_to_s3_connection(self, db_path, s3_config, mock_s3):
+        upload_data.fn(db_path, s3_config)
+        mock_s3.assert_called_once_with(db_path=db_path, s3_config=s3_config)
+
+    def test_raises_on_connection_failure(self, db_path, s3_config, mock_s3):
+        mock_s3.return_value.__enter__.side_effect = Exception('connection failed')
+        with pytest.raises(Exception, match='connection failed'):
+            upload_data.fn(db_path, s3_config)

@@ -1,4 +1,6 @@
 import os
+from pathlib import Path
+import tempfile
 
 import pytest
 from prefect.testing.utilities import prefect_test_harness
@@ -31,7 +33,10 @@ def flow_email() -> str:
 
 def pytest_configure():
     os.environ['PREFECT_LOGGING_TO_API_WHEN_MISSING_FLOW'] = 'ignore'
+    os.environ['NABA_TOP_DATA_DIR'] = _temp_dir.name
 
 
 def pytest_unconfigure():
     os.environ.pop('PREFECT_LOGGING_TO_API_WHEN_MISSING_FLOW', None)
+    os.environ.pop('NABA_TOP_DATA_DIR', None)
+    _temp_dir.cleanup()
