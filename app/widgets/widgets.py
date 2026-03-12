@@ -1,4 +1,4 @@
-from datetime import date, timedelta
+from datetime import timedelta
 
 import streamlit as st
 
@@ -7,7 +7,6 @@ from app.state.manage_state import StateKeys, store_state_value
 
 
 def shared_slider(
-    default: date,
     key: str = StateKeys.SELECTED_WEEK,
 ):
     """
@@ -20,7 +19,6 @@ def shared_slider(
         min_value=min_date,
         max_value=max_date,
         step=timedelta(weeks=1),
-        value=default,
         key='_' + key,
         on_change=store_state_value,
         kwargs={'key': key},
