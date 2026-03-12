@@ -3,7 +3,7 @@ name = "naba-top"
 version = "0.1.0"
 description = "App for displaying radio Naba top 10 and top 25 lists for each week, as well as combining the lists into one top 100"
 readme = "README.md"
-requires-python = ">= 3.13, <3.14"
+requires-python = ">= 3.14"
 authors = [{ name = "Jēkabs Balodis", email = "signalingpigeon@duck.com" }]
 dependencies = [
   "babel>=2.18.0",
