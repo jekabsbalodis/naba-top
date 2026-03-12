@@ -10,10 +10,19 @@ from models import S3Config
 ViewName = Literal['songs', 'charts', 'top10', 'top25', 'all_songs_ranked']
 ALLOWED_VIEWS: frozenset[str] = frozenset(get_args(ViewName))
 
+<<<<<<< HEAD
 key_id = st.secrets['garage']['key_id']
 secret = st.secrets['garage']['secret']
 endpoint = st.secrets['garage']['endpoint']
 region = st.secrets['garage']['region']
+=======
+s3_config = S3Config(
+    key_id=st.secrets['garage']['key_id'],
+    secret=st.secrets['garage']['secret'],
+    endpoint=st.secrets['garage']['endpoint'],
+    region=st.secrets['garage']['region'],
+)
+>>>>>>> create-top-pages
 
 
 @st.cache_data(ttl=60 * 60 * 24, show_spinner='Lejuplādē datus...', show_time=True)
@@ -30,12 +39,16 @@ def get_view(*, view: ViewName) -> pl.DataFrame:
             f"""Norādīts neatļauts skata vai tabulas nosaukums,
             izvēlies kādu no {ALLOWED_VIEWS}."""
         )
+<<<<<<< HEAD
     with s3_connection(
         key_id=key_id,
         secret=secret,
         endpoint=endpoint,
         region=region,
     ) as conn:
+=======
+    with s3_connection(s3_config=s3_config) as conn:
+>>>>>>> create-top-pages
         df = conn.sql(
             f"""--sql
             select

@@ -5,7 +5,7 @@ import pytest
 from bs4 import BeautifulSoup
 from pydantic import HttpUrl
 
-from flows.shared_tasks import fetch_webpage, parse_html
+from flows.shared_tasks import fetch_webpage, parse_html, upload_data
 
 
 @pytest.fixture

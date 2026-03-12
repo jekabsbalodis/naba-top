@@ -83,31 +83,47 @@ def mock_http(flow_url):
         yield
 
 
-class TestMainFlow:
-    def test_runs_without_error(self, db_path, flow_url, flow_email):
-        main_flow.fn(db_path=db_path, url=flow_url, email=flow_email)
+@pytest.fixture(autouse=True)
+def mock_upload():
+    with patch('flows.shared_tasks.s3_connection', return_value=MagicMock()) as mock:
+        yield mock
 
-    def test_songs_are_inserted(self, db_path, flow_url, flow_email):
-        main_flow.fn(db_path=db_path, url=flow_url, email=flow_email)
+
+class TestMainFlow:
+    def test_runs_without_error(self, db_path, flow_url, flow_email, s3_config):
+        main_flow.fn(
+            db_path=db_path, url=flow_url, email=flow_email, s3_config=s3_config
+        )
+
+    def test_songs_are_inserted(self, db_path, flow_url, flow_email, s3_config):
+        main_flow.fn(
+            db_path=db_path, url=flow_url, email=flow_email, s3_config=s3_config
+        )
         with duckdb.connect(db_path) as conn:
             count = conn.sql('select count(*) from songs').fetchone()
         assert count is not None
         assert count[0] == 45
 
-    def test_charts_are_inserted(self, db_path, flow_url, flow_email):
-        main_flow.fn(db_path=db_path, url=flow_url, email=flow_email)
+    def test_charts_are_inserted(self, db_path, flow_url, flow_email, s3_config):
+        main_flow.fn(
+            db_path=db_path, url=flow_url, email=flow_email, s3_config=s3_config
+        )
         with duckdb.connect(db_path) as conn:
             count = conn.sql('select count(*) from charts').fetchone()
         assert count is not None
         assert count[0] == 45
 
-    def test_idempotent_on_second_run(self, db_path, flow_url, flow_email):
-        main_flow.fn(db_path=db_path, url=flow_url, email=flow_email)
+    def test_idempotent_on_second_run(self, db_path, flow_url, flow_email, s3_config):
+        main_flow.fn(
+            db_path=db_path, url=flow_url, email=flow_email, s3_config=s3_config
+        )
         with duckdb.connect(db_path) as conn:
             songs_first = conn.sql('select count(*) from songs').fetchone()
             charts_first = conn.sql('select count(*) from charts').fetchone()
 
-        main_flow.fn(db_path=db_path, url=flow_url, email=flow_email)
+        main_flow.fn(
+            db_path=db_path, url=flow_url, email=flow_email, s3_config=s3_config
+        )
         with duckdb.connect(db_path) as conn:
             songs_second = conn.sql('select count(*) from songs').fetchone()
             charts_second = conn.sql('select count(*) from charts').fetchone()
