@@ -5,13 +5,12 @@ from contextlib import contextmanager
 
 import duckdb
 
+from models import S3Config
+
 
 @contextmanager
 def s3_connection(
-    key_id: str,
-    secret: str,
-    endpoint: str,
-    region: str,
+    s3_config: S3Config,
     db_path: str = ':memory:',
 ) -> Generator[duckdb.DuckDBPyConnection]:
     """Install and load the necessary plugin, create secret for S3 connection.
@@ -43,7 +42,7 @@ def s3_connection(
                url_style 'path'
              );
              """,
-            (key_id, secret, endpoint, region),
+            (s3_config.key_id, s3_config.secret, s3_config.endpoint, s3_config.region),
         )
         yield conn
 

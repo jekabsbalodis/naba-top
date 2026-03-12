@@ -7,6 +7,7 @@ from prefect.tasks import exponential_backoff
 from pydantic import HttpUrl
 
 from database.s3_connection import s3_connection
+from models import S3Config
 
 
 @task(
@@ -52,30 +53,11 @@ def parse_html(res: httpx.Response) -> BeautifulSoup:
 
 
 @task
-def upload_data(
-    db_path: str, key_id: str, secret: str, endpoint: str, region: str
-) -> None:
-    """Upload database tables and views to S3 storage in Parquet format.
-
-    Args:
-        db_path: Path to the DuckDB database file.
-        key_id: S3 access key id.
-        secret: S3 secret access key.
-        endpoint: S3 endpoint URL.
-        region: S3 bucket region.
-
-    Note:
-        Uploads the following tables/views: all_songs_ranked,
-        top10, top25, charts, songs.
-
+def upload_data(db_path: str, s3_config: S3Config) -> None:
     """
-    with s3_connection(
-        db_path=db_path,
-        key_id=key_id,
-        secret=secret,
-        endpoint=endpoint,
-        region=region,
-    ) as conn:
+    Upload the data in database to an S3 storage
+    """
+    with s3_connection(db_path=db_path, s3_config=s3_config) as conn:
         conn.execute(
             """ --sql
 
