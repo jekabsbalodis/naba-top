@@ -1,3 +1,8 @@
+"""Data retrieval module for the Streamlit application.
+
+Provides functions to fetch data from the database and process it for display.
+"""
+
 from datetime import date
 from typing import Literal, get_args
 
@@ -25,12 +30,14 @@ s3_config = S3Config(
 
 @st.cache_data(ttl=60 * 60 * 24, show_spinner='Lejuplādē datus...', show_time=True)
 def get_view(*, view: ViewName) -> pl.DataFrame:
-    """
-    Get the database view or table as a polars dataframe.
+    """Get the database view or table.
+
     Args:
-        view (ViewName): name of the database view or table.
+        view: Name of the database view or table.
+
     Returns:
-        Dataframe of selected view.
+        The selected view.
+
     """
     if view not in ALLOWED_VIEWS:
         raise ValueError(
@@ -52,12 +59,14 @@ def get_view(*, view: ViewName) -> pl.DataFrame:
 
 @st.cache_data(ttl=60 * 60 * 24, show_spinner=False)
 def get_chart(week: date) -> tuple[pl.DataFrame, pl.DataFrame]:
-    """
-    Get the top10 and top25 charts for the selected week.
+    """Get the top10 and top25 charts for the selected week.
+
     Args:
-        week (date): The week for which to return the charts.
+        week: The week for which to return the charts.
+
     Returns:
-        Tuple of dataframes - top10 and top25 dataframe.
+        Tuple of top10 and top25 charts for the selected week.
+
     """
     top_10_df = get_view(view='top10')
     top_25_df = get_view(view='top25')
@@ -70,10 +79,11 @@ def get_chart(week: date) -> tuple[pl.DataFrame, pl.DataFrame]:
 
 @st.cache_data(ttl=60 * 60 * 24, show_spinner=False)
 def get_date_range() -> tuple[date, date]:
-    """
-    Get date range of the available data.
+    """Get date range of the available data.
+
     Returns:
         Tuple of min_week and max_week
+
     """
     charts = get_view(view='charts')
 

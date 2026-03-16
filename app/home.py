@@ -1,3 +1,10 @@
+"""Home page module for the Streamlit application.
+
+This module contains the landing page that users see when they first visit the site.
+It displays the Top 10 and Top 25 charts for the latest week as well as some information
+about the page and Radio Naba.
+"""
+
 import streamlit as st
 
 from app.data.get_data import get_chart, get_date_range
@@ -5,6 +12,7 @@ from app.utils.format import get_date_string
 
 
 def home() -> None:
+    """Create the landing page with latest Top 10 and Top 25 charts."""
     _, week = get_date_range()
     week_str = get_date_string(week)
     top10, top25 = get_chart(week)

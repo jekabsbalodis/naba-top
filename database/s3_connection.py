@@ -1,3 +1,8 @@
+"""S3 database connection module for naba-top application.
+
+Provides context manager for establishing DuckDB connections to S3 storage bucket.
+"""
+
 from collections.abc import Generator
 from contextlib import contextmanager
 
@@ -11,8 +16,18 @@ def s3_connection(
     s3_config: S3Config,
     db_path: str = ':memory:',
 ) -> Generator[duckdb.DuckDBPyConnection]:
-    """Make an s3 connection with a configured secret
-    to successfully connect to garage bucket."""
+    """Create a DuckDB connection configured for S3 access.
+
+    Sets up HTTPFS extension and S3 credentials for querying S3 buckets.
+
+    Args:
+        s3_config: S3 configuration containing credentials and endpoint.
+        db_path: Path to DuckDB database file or ':memory:' (default).
+
+    Returns:
+        Generator yielding a configured DuckDB connection.
+
+    """
     conn = duckdb.connect(db_path)
     try:
         conn.execute(

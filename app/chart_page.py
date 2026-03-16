@@ -1,3 +1,5 @@
+"""Chart page module for displaying music charts in the Streamlit application."""
+
 import polars as pl
 import streamlit as st
 
@@ -11,6 +13,15 @@ from models import ChartType
 def _create_page(
     chart_type: ChartType, title: str, description_chart_type: str
 ) -> None:
+    """Create a chart page and specify variables for it.
+
+    Args:
+        chart_type: The type of chart for which to create the page.
+        title: Text to display as a title of the page.
+        description_chart_type: Text to display in description paragraph
+        (the type of chart).
+
+    """
     load_state_value(key=StateKeys.SELECTED_WEEK)
     _, latest_week = get_date_range()
 
@@ -89,6 +100,7 @@ def _create_page(
 
 
 def top10_page() -> None:
+    """Create page for Latvian music Top 10 chart page."""
     _create_page(
         chart_type=ChartType.TOP10,
         title='Latvijas mūzikas Top&nbsp;10',
@@ -97,6 +109,7 @@ def top10_page() -> None:
 
 
 def top25_page() -> None:
+    """Create page for foreign music Top  25 chart page."""
     _create_page(
         chart_type=ChartType.TOP25,
         title='Ārzemju mūzikas Top&nbsp;25',

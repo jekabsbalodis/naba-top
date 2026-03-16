@@ -1,3 +1,8 @@
+"""Custom widgets for the Streamlit application.
+
+Provides reusable widgets with state management.
+"""
+
 from datetime import timedelta
 
 import streamlit as st
@@ -9,9 +14,15 @@ from app.state.manage_state import StateKeys, store_state_value
 def shared_slider(
     key: str = StateKeys.SELECTED_WEEK,
 ):
-    """
-    Create a slider with predefined min and max value, set desired default value.
-    Reuse the slider's value on another page.
+    """Create a reusable date slider with state persistance.
+
+    Args:
+        key: The state key to use for storing the selected value.
+        Defaults to SELECTED_WEEK from StateKeys enum.
+
+    Returns:
+        Preconfigured Streamlit slider widget.
+
     """
     min_date, max_date = get_date_range()
     slider = st.slider(

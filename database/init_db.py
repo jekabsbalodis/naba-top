@@ -1,8 +1,32 @@
+"""Database initialization module for naba-top application.
+
+Provides functions to create and initialize the DuckDB database schema
+including tables, indexes, sequences and views for music chart data.
+"""
+
 import duckdb
 
 
 def init_db(db_path: str) -> None:
-    """Create the database sequences and tables"""
+    """Initialize the database schema with tables, indexes and views.
+
+    Creates the complete database structure including:
+    - songs table with artist and song information
+    - charts table with chart positions and types (top10/top25)
+    - indexes for efficient querying
+    - views for displaying top10, top25 and ranked songs
+
+    Args:
+        db_path: Path to the DuckDB database file or ':memory:' for in-memory database.
+
+    The function creates:
+    - song_id_sequence and chart_id_sequence for auto-incrementing IDs.
+    - songs table with artist, song_name, and web_songname fields.
+    - charts table with song_id foreign key, chart_type, place, week, and is_new_entry.
+    - Multiple indexes for performance optimization.
+    - Three views: top10, top25, and all_songs_ranked.
+
+    """
     with duckdb.connect(db_path) as conn:
         conn.execute("""-- sql
         -- Create the table where the songs will be stored
