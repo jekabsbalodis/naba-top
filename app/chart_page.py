@@ -39,7 +39,7 @@ def _create_page(
             label='Izpildītājs',
         ),
         'song_name': st.column_config.TextColumn(
-            label='Dziesmas nosakums',
+            label='Dziesmas nosaukums',
         ),
         'place': st.column_config.NumberColumn(
             label='Vieta',
@@ -109,7 +109,7 @@ def top10_page() -> None:
 
 
 def top25_page() -> None:
-    """Create page for foreign music Top  25 chart page."""
+    """Create page for foreign music Top 25 chart page."""
     _create_page(
         chart_type=ChartType.TOP25,
         title='Ārzemju mūzikas Top&nbsp;25',

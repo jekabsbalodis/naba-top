@@ -22,7 +22,7 @@ def home() -> None:
             label='Izpildītājs',
         ),
         'song_name': st.column_config.TextColumn(
-            label='Dziesmas nosakums',
+            label='Dziesmas nosaukums',
         ),
         'place': st.column_config.NumberColumn(
             label='Vieta',
