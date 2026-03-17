@@ -1,3 +1,15 @@
+"""Main Streamlit application entry point for the music charts dashboard.
+
+This module configures and runs the Streamlit web application, setting up:
+- Page configuration (icon, layout, menu items).
+- Application state initialization.
+- Navigation between different pages.
+- UI options and toolbar settings.
+
+The application provides a web interface for viewing and analyzing
+music chart data from the Latvian radio station Radio Naba.
+"""
+
 import streamlit as st
 
 from app.chart_page import top10_page, top25_page

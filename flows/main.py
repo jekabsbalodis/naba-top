@@ -1,3 +1,9 @@
+"""Main workflow orchestration for naba-top data pipeline.
+
+Coordinates the complete ETL process: web scraping, data processing,
+database updates, and S3 uploads using Prefect flows.
+"""
+
 import asyncio
 import os
 from pathlib import Path
@@ -46,7 +52,17 @@ def main_flow(
     email: str | None = None,
     s3_config: S3Config | None = None,
 ) -> None:
-    """Main flow that orchestrates updating songs and charts table in db"""
+    """Coordinate the main flow that orchestrates the complete data pipeline.
+
+    Coordinates web scraping, song/charts updates, and S3 data upload.
+
+    Args:
+        db_path: Database path (defaults to 'db_path' variable).
+        url: Webpage URL (defaults to 'flow_url' variable).
+        email: Email for user-agent header (defaults to 'flow-email' secret).
+        s3_config: S3 configuration (defaults to secrets saved in prefect).
+
+    """
     database_path = db_path or _load_variable('db_path')
     flow_url = url or _load_variable('flow_url')
     flow_email = email or _load_secret('flow-email')
