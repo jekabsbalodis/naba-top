@@ -27,7 +27,7 @@ deployments:
     entrypoint: flows/main.py:main_flow
     parameters: {}
     work_pool:
-      name: default-pool
+      name: naba-scrape-pool
       work_queue_name: null
       job_variables: {}
     schedules: []
