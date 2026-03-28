@@ -3,6 +3,8 @@
 Streamlit application for displaying Radio NABA weekly Top&nbsp;10 and Top&nbsp;25 music charts
 and Prefect workflow for data scraping and processing.
 
+The app is available at [naba-top.streamlit.app](https://naba-top.streamlit.app).
+
 ## Features
 
 - View current week's Top&nbsp;10 and Top&nbsp;25 music charts
