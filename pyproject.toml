@@ -20,7 +20,7 @@ dependencies = [
 [dependency-groups]
 dev = [
   "pytest>=8.4.2",
-  "pytest-coverage>=0.0",
+  "pytest-cov>=7.1.0",
   "ruff>=0.13.2",
   "sqlfluff>=3.5.0",
   "tombi>=0.6.17",
@@ -63,10 +63,5 @@ ignore = ["PLR2004", "F821"]
 exclude = [".venv/**"]
 
 [tool.ty.environment]
-python-platform = "win32"
+python-platform = "linux"
 python-version = "3.14"
-
-[tool.uv]
-required-environments = [
-  "sys_platform == 'win32' and platform_machine == 'AMD64'"
-]
