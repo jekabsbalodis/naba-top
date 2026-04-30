@@ -96,3 +96,17 @@ def get_date_range() -> tuple[date, date]:
         return min_week, max_week
     else:
         raise ValueError('Pieejamie dati nav atbiltoša formāta')
+
+
+@st.cache_data(ttl=60 * 60 * 24, show_spinner=False)
+def get_all_songs_ranked() -> pl.DataFrame:
+    """Get database view for all songs ranked by normalized points.
+
+    Returns a view with all the songs that have been in ranked places
+    and their points summed up and normalized.
+
+    Returns:
+        Dataframe of all songs ranked.
+
+    """
+    return get_view(view='all_songs_ranked')

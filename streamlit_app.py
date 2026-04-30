@@ -15,6 +15,7 @@ import streamlit as st
 from app.chart_page import top10_page, top25_page
 from app.home import home
 from app.state.manage_state import init_state
+from app.top100 import top100_page
 
 st.set_page_config(
     page_icon=':material/content_cut:',
@@ -41,6 +42,12 @@ pages = [
         title='Top 25',
         url_path='/top25',
         icon=':material/language:',
+    ),
+    st.Page(
+        top100_page,
+        title='Top 100',
+        url_path='/top101',
+        icon=':material/trophy:',
     ),
 ]
 
