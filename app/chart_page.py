@@ -3,7 +3,7 @@
 import polars as pl
 import streamlit as st
 
-from app.data.get_data import get_chart, get_date_range
+from app.data.get_data import get_chart
 from app.state.manage_state import StateKeys, load_state_value
 from app.utils.format import get_date_string
 from app.widgets.widgets import shared_slider
@@ -23,7 +23,6 @@ def _create_page(
 
     """
     load_state_value(key=StateKeys.SELECTED_WEEK)
-    _, latest_week = get_date_range()
 
     if chart_type == ChartType.TOP10:
         chart_df, _ = get_chart(week=st.session_state[StateKeys.SELECTED_WEEK])
