@@ -145,7 +145,7 @@ def init_db(db_path: str) -> None:
           song_scores ss
           JOIN songs s ON ss.song_id = s.id
         ORDER BY
-          score DESC;
+          place ASC;
         """)
 
 
