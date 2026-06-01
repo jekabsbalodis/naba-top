@@ -14,7 +14,7 @@ dependencies = [
   "prefect==3.7.1",
   "pydantic[email]>=2.12.5",
   "python-dateutil>=2.9.0.post0",
-  "streamlit>=1.57.0",
+  "streamlit[auth]>=1.57.0",
 ]
 
 [dependency-groups]
