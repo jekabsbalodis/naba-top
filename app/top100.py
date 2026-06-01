@@ -175,4 +175,4 @@ def top100_page() -> None:
         build_ranked_list(build_101_df())
 
         st.divider()
-        st.button('Pievienoties', on_click=st.login, type='tertiary')
+        st.button('Pievienoties', on_click=st.login, args=['pocketid'], type='tertiary')
