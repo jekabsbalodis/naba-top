@@ -128,7 +128,6 @@ def build_forecast_zone(df: pl.DataFrame) -> None:
 
     Displayed only for the user that are not logged in.
     """
-
     songs = df.select(['artist', 'song_name']).to_dicts()
 
     random.shuffle(songs)
@@ -145,11 +144,11 @@ def build_forecast_zone(df: pl.DataFrame) -> None:
 
 def top100_page() -> None:
     """Create page for Top 100 songs ranked."""
-    col1, col2 = st.columns(2, vertical_alignment='bottom')
+    st.title('Radio NABA Top&nbsp;100 dziesmu tops')
+
+    col1, col2 = st.columns([2, 3], vertical_alignment='top')
 
     with col1:
-        st.title('Radio NABA Top&nbsp;100 dziesmu tops')
-
         st.markdown(
             'Šeit apkopotas dziesmas no Top&nbsp;10 un Top&nbsp;25 '
             'topiem un sakārtotas pēc iegūto punktu skaita'
