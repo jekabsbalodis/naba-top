@@ -5,10 +5,32 @@ It displays the Top 10 and Top 25 charts for the latest week as well as some inf
 about the page and Radio Naba.
 """
 
+from datetime import date, timedelta
+from typing import Final
+
 import streamlit as st
+from pydantic import HttpUrl
 
 from app.data.get_data import get_chart, get_date_range
 from app.utils.format import get_date_string
+
+_STREAM_BASE: Final[str] = 'https://muste.latvijasradio.lv/arh/_definst_'
+_ARCHIVE_TEMPLATE: Final[str] = (
+    'https://latvijasradio.lsm.lv/lv/lr/arhivs/'
+    '?adv=1&d={d}&m={m}&y={y}&channel=6&keyword=NABA+Top'
+)
+
+
+def _stream_url(week: date) -> str:
+    return HttpUrl(
+        f'{_STREAM_BASE}/6/{week:%Y%m}/{week:%Y%m%d}_1700_r6.m4a/playlist.m3u8'
+    ).encoded_string()
+
+
+def _archive_url(week: date) -> str:
+    return HttpUrl(
+        _ARCHIVE_TEMPLATE.format(d=week.day, m=week.month, y=week.year)
+    ).encoded_string()
 
 
 def home() -> None:
@@ -44,6 +66,16 @@ def home() -> None:
 
     ## {week_str}
     """)
+
+    st.audio(_stream_url(week))
+    st.caption(
+        body=(
+            'Nevar atskaņot raidījuma ierakstu? '
+            f'[Atver arhīvā ↗]({_archive_url(week)}) '
+            'un pārbaudi, vai tas jau ir pieejams!'
+        ),
+        help='Ieraksta atskaņošana Firefox pārlūkā uz datora nav iespējama.',
+    )
 
     col1, col2 = st.columns(2)
 
