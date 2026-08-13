@@ -21,8 +21,8 @@ st.set_page_config(
     page_icon=':material/content_cut:',
     layout='wide',
     menu_items={
-        'Get help': 'https://mastodon.social/@khorticija',
-        'Report a bug': 'https://codeberg.org/clear9550/naba-top/issues',
+        'Get help': 'https://gts.balodis.id.lv/@jekabs',
+        'Report a bug': None,
         'About': None,
     },
 )
