@@ -1,11 +1,21 @@
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, patch, AsyncMock
 
 import duckdb
 import httpx
 import pytest
+from prefect.blocks.system import Secret
+from prefect.variables import Variable
+from pydantic import ValidationError
 
 from database.init_db import init_db
-from flows.main import main_flow
+from flows.main import (
+    _load_secret,
+    _load_variable,
+    _validate_db_path,
+    _validate_email,
+    _validate_url,
+    main_flow,
+)
 
 
 def _make_song_lines(chart: str, ranked: int, unranked: int) -> str:
@@ -130,3 +140,100 @@ class TestMainFlow:
 
         assert songs_first == songs_second
         assert charts_first == charts_second
+
+    def test_validate_url_raises_on_invalid_url(self):
+        with pytest.raises(ValidationError):
+            _validate_url('not-a-url')
+
+    def test_validate_email_raises_on_invalid_email(self):
+        with pytest.raises(ValidationError):
+            _validate_email('not-an-email')
+
+    def test_validate_db_path_returns_normalized_path(self, tmp_path):
+        db_file = tmp_path / 'db.duckdb'
+        assert _validate_db_path(str(db_file)) == str(db_file)
+
+    def test_validate_db_path_raises_on_missing_parent(self):
+        with pytest.raises(ValueError, match='DB_PATH parent directory does not exist'):
+            _validate_db_path('/nonexistent/path/db.duckdb')
+
+    def test_main_flow_raises_on_missing_data_dir(
+        self, db_path, flow_url, flow_email, s3_config, monkeypatch
+    ):
+        monkeypatch.delenv('NABA_TOP_DATA_DIR', raising=False)
+        with pytest.raises(
+            LookupError, match='Environment variable for data dir is not set'
+        ):
+            main_flow.fn(
+                db_path=db_path, url=flow_url, email=flow_email, s3_config=s3_config
+            )
+
+    def test_main_flow_uses_defaults_when_params_are_none(
+        self, db_path, flow_url, flow_email, s3_config
+    ):
+        def mock_load_secret(secret_name):
+            if secret_name == 'flow-email':
+                return flow_email
+            elif secret_name == 'garage-key-id':
+                return 'test-key-id'
+            elif secret_name == 'garage-secret':
+                return 'test-secret'
+            elif secret_name == 'garage-endpoint':
+                return 's3.example.com'
+            elif secret_name == 'garage-region':
+                return 'test_region'
+            return 'default-secret'
+
+        def mock_load_variable(variable_name):
+            if variable_name == 'db_path':
+                return db_path
+            elif variable_name == 'flow_url':
+                return flow_url
+            return 'default-value'
+
+        with (
+            patch('flows.main._load_secret', side_effect=mock_load_secret),
+            patch('flows.main._load_variable', side_effect=mock_load_variable),
+            patch('flows.main.fetch_webpage', return_value=MagicMock()) as mock_fetch,
+            patch('flows.main.parse_html', return_value=MagicMock()),
+            patch('flows.main.update_songs_flow'),
+            patch('flows.main.update_charts_flow'),
+            patch('flows.main.upload_data') as mock_upload,
+        ):
+            main_flow.fn(db_path=None, url=None, email=None, s3_config=None)
+
+        mock_fetch.assert_called_once_with(flow_url, flow_email)
+        uploaded_s3_config = mock_upload.call_args.args[1]
+        assert uploaded_s3_config.key_id == 'test-key-id'
+        assert uploaded_s3_config.secret == 'test-secret'
+        assert uploaded_s3_config.endpoint == 's3.example.com'
+        assert uploaded_s3_config.region == 'test_region'
+
+    def test_load_secret(self, monkeypatch):
+        mock_secret_block = MagicMock()
+        mock_secret_block.get.return_value = 'test-secret-value'
+        async_mock = AsyncMock(return_value=mock_secret_block)
+        monkeypatch.setattr(Secret, 'aload', async_mock)
+
+        result = _load_secret('test-secret-name')
+
+        assert result == 'test-secret-value'
+        async_mock.assert_called_once_with('test-secret-name')
+
+    def test_load_variable(self, monkeypatch):
+        async_mock = AsyncMock(return_value='test-variable-value')
+        monkeypatch.setattr(Variable, 'aget', async_mock)
+
+        result = _load_variable('test-variable-name')
+
+        assert result == 'test-variable-value'
+        async_mock.assert_called_once_with('test-variable-name')
+
+    def test_load_variable_coerces_non_string_value(self, monkeypatch):
+        async_mock = AsyncMock(return_value=123)
+        monkeypatch.setattr(Variable, 'aget', async_mock)
+
+        result = _load_variable('test-variable-name')
+
+        assert result == '123'
+        assert isinstance(result, str)
