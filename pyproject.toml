@@ -11,11 +11,10 @@ dependencies = [
   "duckdb>=1.4.3",
   "httpx>=0.28.1",
   "polars[pyarrow]>=1.37.1",
-  "prefect==3.8.1",
+  "prefect==3.8.6",
   "pydantic[email]>=2.12.5",
   "python-dateutil>=2.9.0.post0",
   "streamlit[auth]>=1.60.0",
-  "streamlit[auth]==1.61.1",
 ]
 
 [dependency-groups]
