@@ -5,19 +5,12 @@ and S3 data upload operations.
 """
 
 import httpx
-from bs4 import BeautifulSoup
-from prefect import task
-from prefect.tasks import exponential_backoff
 from pydantic import HttpUrl
 
 from database.s3_connection import s3_connection
 from models import S3Config
 
 
-@task(
-    retries=5,
-    retry_delay_seconds=exponential_backoff(backoff_factor=3),
-)
 def fetch_webpage(url: str, email: str) -> httpx.Response:
     """Fetch webpage content with retry logic and custom user-agent.
 
@@ -44,23 +37,6 @@ def fetch_webpage(url: str, email: str) -> httpx.Response:
     return response
 
 
-@task
-def parse_html(res: httpx.Response) -> BeautifulSoup:
-    """Parse HTML response into BeautifulSoup document.
-
-    Args:
-        res: httpx.Response containing HTML content.
-
-    Returns:
-        BeautifulSoup parsed document tree.
-
-    Uses lxml parser for efficient HTML parsing.
-
-    """
-    return BeautifulSoup(res.text, 'lxml')
-
-
-@task
 def upload_data(db_path: str, s3_config: S3Config) -> None:
     """Upload database tables to S3 storage in Parquet format.
 

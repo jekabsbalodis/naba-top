@@ -6,14 +6,14 @@ import pytest
 from bs4 import BeautifulSoup, ResultSet
 
 from database.init_db import init_db
-from flows.update_charts import (
+from models import ChartEntry, ChartType
+from pipeline.update_charts import (
     create_charts_df,
     extract_chart_elements,
     insert_chart_data_into_db,
     parse_chart_data,
     validate_charts_count,
 )
-from models import ChartEntry, ChartType
 
 SAMPLE_HTML = """
 <html><body>
@@ -119,26 +119,26 @@ def setup_db(db_path):
 
 @pytest.fixture
 def chart_entries(chart_elements, db_path) -> list[ChartEntry]:
-    return parse_chart_data.fn(chart_elements, db_path)
+    return parse_chart_data(chart_elements, db_path)
 
 
 @pytest.fixture
 def charts_df(chart_entries) -> pl.DataFrame:
-    return create_charts_df.fn(chart_entries)
+    return create_charts_df(chart_entries)
 
 
 class TestExtractChartElements:
     def test_returns_result_set(self, sample_soup):
-        result = extract_chart_elements.fn(sample_soup)
+        result = extract_chart_elements(sample_soup)
         assert isinstance(result, ResultSet)
 
     def test_returns_two_charts(self, sample_soup):
-        result = extract_chart_elements.fn(sample_soup)
+        result = extract_chart_elements(sample_soup)
         assert len(result) == 2
 
     def test_empty_page_returns_empty(self):
         soup = BeautifulSoup('<html><body></body></html>', 'lxml')
-        result = extract_chart_elements.fn(soup)
+        result = extract_chart_elements(soup)
         assert len(result) == 0
 
 
@@ -171,15 +171,15 @@ class TestParseChartData:
 
     def test_is_new_entry_true_when_not_in_charts(self, chart_elements, db_path):
         """Songs not yet in charts should be marked as new entries"""
-        result = parse_chart_data.fn(chart_elements, db_path)
+        result = parse_chart_data(chart_elements, db_path)
         assert all(e.is_new_entry is True for e in result)
 
     def test_is_new_entry_true_when_place_is_none(self, chart_elements, db_path):
-        first_run = parse_chart_data.fn(chart_elements, db_path)
-        df = create_charts_df.fn(first_run)
-        insert_chart_data_into_db.fn(df, db_path)
+        first_run = parse_chart_data(chart_elements, db_path)
+        df = create_charts_df(first_run)
+        insert_chart_data_into_db(df, db_path)
 
-        second_run = parse_chart_data.fn(chart_elements, db_path)
+        second_run = parse_chart_data(chart_elements, db_path)
         j_entries = [e for e in second_run if e.place is None]
         assert len(j_entries) > 0
         assert all(e.is_new_entry is True for e in j_entries)
@@ -187,11 +187,11 @@ class TestParseChartData:
     def test_is_new_entry_false_when_in_charts_and_has_place(
         self, chart_elements, db_path
     ):
-        first_run = parse_chart_data.fn(chart_elements, db_path)
-        df = create_charts_df.fn(first_run)
-        insert_chart_data_into_db.fn(df, db_path)
+        first_run = parse_chart_data(chart_elements, db_path)
+        df = create_charts_df(first_run)
+        insert_chart_data_into_db(df, db_path)
 
-        second_run = parse_chart_data.fn(chart_elements, db_path)
+        second_run = parse_chart_data(chart_elements, db_path)
         returning_entries = [e for e in second_run if e.place is not None]
         assert len(returning_entries) > 0
         assert all(e.is_new_entry is False for e in returning_entries)
@@ -220,7 +220,7 @@ class TestParseChartData:
         """
         soup = BeautifulSoup(html, 'lxml').css.select('.songsList')
         with pytest.raises(LookupError, match='No tag for date found'):
-            parse_chart_data.fn(soup, db_path)
+            parse_chart_data(soup, db_path)
 
     def test_raises_when_song_not_in_db(self, db_path):
         """LookupError raised when song in HTML is not found in songs table"""
@@ -245,7 +245,7 @@ class TestParseChartData:
         """
         soup = BeautifulSoup(html, 'lxml').css.select('.songsList')
         with pytest.raises(LookupError, match='not found in database'):
-            parse_chart_data.fn(soup, db_path)
+            parse_chart_data(soup, db_path)
 
     def test_raises_when_no_songname_tag(self, db_path):
         """LookupError raised when songName tag is missing from songLine"""
@@ -269,7 +269,7 @@ class TestParseChartData:
         """
         soup = BeautifulSoup(html, 'lxml').css.select('.songsList')
         with pytest.raises(LookupError, match='No tag for web_songname found'):
-            parse_chart_data.fn(soup, db_path)
+            parse_chart_data(soup, db_path)
 
 
 class TestValidateChartsCount:
@@ -330,37 +330,37 @@ class TestValidateChartsCount:
 
     def test_validates_correct_counts(self):
         """Should not raise when counts are exactly 10 and 25"""
-        validate_charts_count.fn(self._make_entries())
+        validate_charts_count(pl.DataFrame(self._make_entries()))
 
     def test_validates_correct_counts_with_unranked(self):
         """Unranked entries alongside correct ranked counts should not raise"""
-        validate_charts_count.fn(self._make_entries())
+        validate_charts_count(pl.DataFrame(self._make_entries()))
 
     def test_ignores_entries_with_none_place(self):
         """Unranked (None place) entries should not be counted toward ranked total"""
-        validate_charts_count.fn(self._make_entries())
+        validate_charts_count(pl.DataFrame(self._make_entries()))
 
     def test_raises_on_incorrect_top10_count(self):
         """Should raise ValueError when TOP10 has fewer than 10 ranked entries"""
         with pytest.raises(ValueError, match=f'{ChartType.TOP10} has 9 ranked entries'):
-            validate_charts_count.fn(self._make_entries(top10_ranked=9))
+            validate_charts_count(pl.DataFrame(self._make_entries(top10_ranked=9)))
 
     def test_raises_on_incorrect_top25_count(self):
         """Should raise ValueError when TOP25 has fewer than 25 ranked entries"""
         with pytest.raises(
             ValueError, match=f'{ChartType.TOP25} has 24 ranked entries'
         ):
-            validate_charts_count.fn(self._make_entries(top25_ranked=24))
+            validate_charts_count(pl.DataFrame(self._make_entries(top25_ranked=24)))
 
     def test_raises_on_empty_top10(self):
         """Should raise ValueError when TOP10 has no ranked entries at all"""
         with pytest.raises(ValueError, match=f'{ChartType.TOP10} has 0 ranked entries'):
-            validate_charts_count.fn(self._make_entries(top10_ranked=0))
+            validate_charts_count(pl.DataFrame(self._make_entries(top10_ranked=0)))
 
     def test_unranked_do_not_substitute_missing_ranked(self):
         """9 ranked + 5 unranked should still fail — unranked don't count"""
         with pytest.raises(ValueError, match=f'{ChartType.TOP10} has 9 ranked entries'):
-            validate_charts_count.fn(self._make_entries(top10_ranked=9))
+            validate_charts_count(pl.DataFrame(self._make_entries(top10_ranked=9)))
 
 
 class TestCreateChartsDf:
@@ -385,22 +385,22 @@ class TestCreateChartsDf:
 
 class TestInsertChartDataIntoDb:
     def test_inserts_chart_entries(self, charts_df, db_path):
-        insert_chart_data_into_db.fn(charts_df, db_path)
+        insert_chart_data_into_db(charts_df, db_path)
         with duckdb.connect(db_path) as conn:
             count = conn.sql('select count(*) from charts').fetchone()
         assert count is not None
         assert count[0] == 4
 
     def test_ignores_duplicates(self, charts_df, db_path):
-        insert_chart_data_into_db.fn(charts_df, db_path)
-        insert_chart_data_into_db.fn(charts_df, db_path)
+        insert_chart_data_into_db(charts_df, db_path)
+        insert_chart_data_into_db(charts_df, db_path)
         with duckdb.connect(db_path) as conn:
             count = conn.sql('select count(*) from charts').fetchone()
         assert count is not None
         assert count[0] == 4
 
     def test_inserts_correct_chart_types(self, charts_df, db_path):
-        insert_chart_data_into_db.fn(charts_df, db_path)
+        insert_chart_data_into_db(charts_df, db_path)
         with duckdb.connect(db_path) as conn:
             top10_count = conn.sql(
                 "select count(*) from charts where chart_type = 'top10'"
@@ -414,7 +414,7 @@ class TestInsertChartDataIntoDb:
         assert top25_count[0] == 2
 
     def test_inserts_correct_week(self, charts_df, db_path):
-        insert_chart_data_into_db.fn(charts_df, db_path)
+        insert_chart_data_into_db(charts_df, db_path)
         with duckdb.connect(db_path) as conn:
             weeks = conn.sql('select distinct week from charts').fetchall()
         assert len(weeks) == 1

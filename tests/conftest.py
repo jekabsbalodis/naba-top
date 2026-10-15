@@ -3,16 +3,9 @@ import tempfile
 from pathlib import Path
 
 import pytest
-from prefect.testing.utilities import prefect_test_harness
 
 from database.init_db import init_db
 from models import S3Config
-
-
-@pytest.fixture(autouse=True, scope='session')
-def prefect_test_fixture():
-    with prefect_test_harness(server_startup_timeout=60):
-        yield
 
 
 @pytest.fixture
@@ -46,11 +39,9 @@ _temp_dir = tempfile.TemporaryDirectory()
 
 
 def pytest_configure():
-    os.environ['PREFECT_LOGGING_TO_API_WHEN_MISSING_FLOW'] = 'ignore'
     os.environ['NABA_TOP_DATA_DIR'] = _temp_dir.name
 
 
 def pytest_unconfigure():
-    os.environ.pop('PREFECT_LOGGING_TO_API_WHEN_MISSING_FLOW', None)
     os.environ.pop('NABA_TOP_DATA_DIR', None)
     _temp_dir.cleanup()

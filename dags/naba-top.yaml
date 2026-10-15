@@ -1,0 +1,58 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/dagucloud/dagu/main/internal/cmn/schema/dag.schema.json
+type: graph
+description: Scrape Radio NABA charts, update DuckDB, upload parquet to S3
+schedule: "0 17 * * FRI" # weekly, Friday 17:00
+queue: naba-top
+working_dir: /opt/naba-top
+dotenv: /etc/naba-top/.env
+
+artifacts:
+  enabled: true
+  dir: /var/lib/naba-top/artifacts
+
+handler_on:
+  failure:
+    run: https --ignore-stdin --check-status POST "$NTFY_URL" "Title:naba-top failed" --raw "DAG run failed, see the Dagu UI"
+
+secrets:
+  - name: S3_SECRET
+    provider: env
+    key: S3_SECRET
+  - name: NTFY_URL
+    provider: env
+    key: NTFY_URL
+
+steps:
+  - id: fetch
+    run: .venv/bin/python -m pipeline fetch
+    retry_policy:
+      limit: 5
+      interval_sec: 3
+      backoff: 2.0
+
+  - id: parse_songs
+    run: .venv/bin/python -m pipeline parse-songs
+    depends: [fetch]
+
+  - id: load_songs
+    run: .venv/bin/python -m pipeline load-songs
+    depends: [parse_songs]
+
+  - id: parse_charts
+    run: .venv/bin/python -m pipeline parse-charts
+    depends: [load_songs]
+
+  - id: validate_charts
+    run: .venv/bin/python -m pipeline validate-charts
+    depends: [parse_charts]
+
+  - id: load_charts
+    run: .venv/bin/python -m pipeline load-charts
+    depends: [validate_charts]
+
+  - id: upload
+    run: .venv/bin/python -m pipeline upload
+    depends: [load_charts]
+    retry_policy:
+      limit: 3
+      interval_sec: 60

@@ -10,13 +10,10 @@ import duckdb
 import polars as pl
 from bs4 import BeautifulSoup, ResultSet, Tag
 from dateutil.parser import parse
-from prefect import flow, task
-from prefect.cache_policies import NO_CACHE
 
 from models import ChartEntry, ChartType
 
 
-@task
 def extract_chart_elements(soup: BeautifulSoup) -> ResultSet[Tag]:
     """Extract chart container elements from parsed HTML.
 
@@ -32,7 +29,6 @@ def extract_chart_elements(soup: BeautifulSoup) -> ResultSet[Tag]:
     return soup.css.select('.songsList')
 
 
-@task(cache_policy=NO_CACHE)
 def parse_chart_data(soup: ResultSet[Tag], db_path: str) -> list[ChartEntry]:
     """Parse chart data from HTML elements into structured entries.
 
@@ -160,8 +156,7 @@ def parse_chart_data(soup: ResultSet[Tag], db_path: str) -> list[ChartEntry]:
     return chart_entries
 
 
-@task
-def validate_charts_count(chart_entries: list[ChartEntry]) -> None:
+def validate_charts_count(charts_df: pl.DataFrame) -> None:
     """Validate that parsed charts contain expected number of ranked entries.
 
     Ensures top10 has exactly 10 ranked songs and top25 has exactly 25.
@@ -177,12 +172,12 @@ def validate_charts_count(chart_entries: list[ChartEntry]) -> None:
     """
     expected_count = {ChartType.TOP10: 10, ChartType.TOP25: 25}
 
+    ranked = charts_df.filter(pl.col('place').is_not_null())
+
     actual_count = dict.fromkeys(ChartType, 0)
 
-    for entry in chart_entries:
-        if entry.place is None:
-            continue
-        actual_count[entry.chart_type] += 1
+    for chart_type, n in ranked.group_by('chart_type').len().iter_rows():
+        actual_count[ChartType(chart_type)] = n
 
     for chart_type, expected in expected_count.items():
         actual = actual_count[chart_type]
@@ -193,7 +188,6 @@ def validate_charts_count(chart_entries: list[ChartEntry]) -> None:
             )
 
 
-@task
 def create_charts_df(chart_entries: list[ChartEntry]) -> pl.DataFrame:
     """Convert chart entries to Polars DataFrame for database insertion.
 
@@ -211,7 +205,6 @@ def create_charts_df(chart_entries: list[ChartEntry]) -> pl.DataFrame:
     return web_chart
 
 
-@task
 def insert_chart_data_into_db(_new_chart_data: pl.DataFrame, db_path: str) -> None:
     """Insert chart data DataFrame into database using INSERT OR IGNORE.
 
@@ -232,22 +225,3 @@ def insert_chart_data_into_db(_new_chart_data: pl.DataFrame, db_path: str) -> No
             )
             """
         )
-
-
-@flow
-def update_charts_flow(soup: BeautifulSoup, db_path: str) -> None:
-    """Complete workflow for updating chart data in database.
-
-    Orchestrates the full process of extracting, parsing, validating,
-    and storing chart information from web pages.
-
-    Args:
-        soup: BeautifulSoup parsed webpage.
-        db_path: Path to DuckDB database.
-
-    """
-    chart_soup = extract_chart_elements(soup=soup)
-    charts = parse_chart_data(soup=chart_soup, db_path=db_path)
-    validate_charts_count(chart_entries=charts)
-    charts_df = create_charts_df(charts)
-    insert_chart_data_into_db(charts_df, db_path)

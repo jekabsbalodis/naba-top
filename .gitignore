@@ -21,3 +21,9 @@ wheels/
 
 # Streamlit
 .streamlit/
+
+# .env
+.env
+
+# data staging
+stage/

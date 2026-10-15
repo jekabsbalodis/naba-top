@@ -1,7 +1,7 @@
 # Naba top
 
 Streamlit application for displaying Radio NABA weekly Top&nbsp;10 and Top&nbsp;25 music charts
-and Prefect workflow for data scraping and processing.
+and pipeline for data scraping and processing (scheduled with [Dagu](https://dagu.sh)).
 
 The app is available at [naba-top.streamlit.app](https://naba-top.streamlit.app).
 
@@ -17,7 +17,7 @@ The app is available at [naba-top.streamlit.app](https://naba-top.streamlit.app)
 
 - Python 3.14+
 - Git or Jujutsu
-- Prefect server for workflow orchestration
+- Dagu for scheduling, though it's optional because steps are CLI commands
 - S3 storage for processed data upload
 
 ## Installation
@@ -31,29 +31,30 @@ The app is available at [naba-top.streamlit.app](https://naba-top.streamlit.app)
    ```bash
    uv sync
    ```
-3. Configure Prefect and Streamlit (instructions in configuration section)
+3. Configure the pipeline and Streamlit (instructions in configuration section)
 
 ## Database setup
 
-Before running any flows, You need to initialize the DuckDB database on the machine You are running the Prefect server.
+Before running the pipeline, You need to initialize the DuckDB database on the machine You run it.
 
 ```bash
 uv run -m database.init_db <path/to/database.db>
 ```
 
-This creates a DuckDB database with the necessary schema. The path must match the `db_path` You will set as a
-Prefect variable.
+This creates a DuckDB database with the necessary schema. The database must be located in `NABA_TOP_DATA_DIR` and it's
+name must match `NABA_TOP_DB_PATH`.
 
 ## Configuration
 
-Using the Prefect server's webpage, set Prefect Secret blocks and Variables (or use `uv run prefect variable`
-and `uv run prefect block` commands).
+The pipeline reads it's settings from the environment variables (see `.env.example`)
 
-You need to set these variables:
+1. `NABA_TOP_DATA_DIR` - directory with the DuckDB file (and `stage/` for runs outside Dagu)
+2. `NABA_TOP_DB_PATH` - database file name, relative to `NABA_TOP_DATA_DIR`
+3. `NABA_TOP_URL` - the url of the web page to scrape
+4. `NABA_TOP_EMAIL` - contact email added to the request header when scraping
+5. `S3_KEY_ID`, `S3_SECRET`, `S3_ENDPOINT`, `S3_REGION` - S3 credentials
 
-1. `db_path` - path of the database to use for the flows, it's the path on the machine You are running the Prefect
-   server
-2. `flow_url` - the url of the web page to scrape
+Put them in a `.env` file, Dagu loads it with `dotenv:`
 
 You also need to set these secret blocks:
 
@@ -82,29 +83,50 @@ region = "your-s3-region"
 
 The app will be available at http://localhost:8501
 
-### Running Prefect flow
+### Running the pipeline
 
-The project includes the main flow that:
+The pipeline is a chain of steps. Each is a CLI command and it passes it's result to the next one through a file saved
+to disk.
 
-1. Fetches and parses the webpage
-2. Hands off the parsed data to two different subflows:
-   - Flow that updates the data about songs
-   - Flow that updates the data about current charts
-3. Uploads the data to an S3 storage.
+The files are saved in one of these directories:
 
-Deploy the flow with `uv run prefect deploy` and follow the options displayed in the terminal.
+- if executed with Dagu, files are saved in artifact directory (`DAG_RUN_ARTIFACTS_DIR`,
+  enabled by `artifacts.enabled: true` in the DAG). Files can be browsed and downloaded in from
+  the Web UI's Artifacts tab.
+- if executed manualy, files are saved in `$NABA_TOP_DATA_DIR/stage/<run id>/`. `<run id>` is `latest` for single steps
+  and a timestamp for `run-all` executions. Set `NABA_TOP_RUN_ID` to define a specific folder
+  in `$NABA_TOP_DATA_DIR/stage/`
 
-You can run the deployment from the Prefect server's webpage and also set the schedule there.
+| Step              | Reads                            | Writes                               |
+| ----------------- | -------------------------------- | ------------------------------------ |
+| `fetch`           | web page                         | `page.html`                          |
+| `parse-songs`     | `page.html`                      | `songs.parquet`                      |
+| `load-songs`      | `songs.parquet`                  | database                             |
+| `parse-charts`    | `page.html`, database (song ids) | `charts.parquet`                     |
+| `validate-charts` | `charts.parquet`                 | - (fails if the page layout changed) |
+| `load-charts`     | `charts.parquet`                 | database                             |
+| `upload`          | database                         | parquet files in S3                  |
+
+Run one step with `uv run python -m pipeline <step>`
+and all the steps in one process with `uv run python -m pipeline run-all`.
+
+### Scheduling with Dagu
+
+`dags/naba-top.yaml` defines one Dagu step per pipeline step with retries, max active runs and an optional ntfy
+notification on failure.
 
 ## Project structure
 
 Key files and directories:
 
 - app/ - Streamlit application code
-- flows/ - Prefect flows and tasks
-  - main.py - Main orchestration flow
+- pipeline/ - Pipeline steps
+  - `__main__.py` - CLI commands, one command per step
+  - config.py - Settings from environment variables
+  - shared_tasks.py - Steps required for both song and chart parsing (fetching page, uploading to S3)
   - update_songs.py - Song data processing
   - update_charts.py - Chart data processing
+- dags/ - Dagu DAG definition
 - models.py - Data models (Song, ChartEntry and similar)
 - prefect.yaml - Prefect deployment configuration
 - pyproject.toml - Project dependencies and configuration

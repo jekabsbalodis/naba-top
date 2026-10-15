@@ -4,13 +4,13 @@ import pytest
 from bs4 import BeautifulSoup, ResultSet
 
 from database.init_db import init_db
-from flows.update_songs import (
+from models import Song
+from pipeline.update_songs import (
     create_songs_df,
     extract_song_elements,
     insert_songs_into_db,
     parse_song_data,
 )
-from models import Song
 
 
 @pytest.fixture
@@ -68,36 +68,36 @@ def setup_db(db_path):
 
 class TestExtractSongElements:
     def test_returns_result_set(self, sample_html):
-        result = extract_song_elements.fn(sample_html)
+        result = extract_song_elements(sample_html)
         assert isinstance(result, ResultSet)
 
     def test_returns_correct_count(self, sample_html):
-        result = extract_song_elements.fn(sample_html)
+        result = extract_song_elements(sample_html)
         assert len(result) == 3
 
     def test_returns_correct_text(self, sample_html):
-        result = extract_song_elements.fn(sample_html)
+        result = extract_song_elements(sample_html)
         texts = [el.text for el in result]
         assert 'Artist One - Song One' in texts
 
     def test_empty_page_returns_empty_result(self):
         soup = BeautifulSoup('<html><body></body></html>', 'lxml')
-        result = extract_song_elements.fn(soup)
+        result = extract_song_elements(soup)
         assert len(result) == 0
 
 
 class TestParseSongData:
     def test_returns_list_of_songs(self, song_elements):
-        result = parse_song_data.fn(song_elements)
+        result = parse_song_data(song_elements)
         assert isinstance(result, list)
         assert all(isinstance(s, Song) for s in result)
 
     def test_returns_correct_count(self, song_elements):
-        result = parse_song_data.fn(song_elements)
+        result = parse_song_data(song_elements)
         assert len(result) == 3
 
     def test_parses_artist_and_song_name(self, song_elements):
-        result = parse_song_data.fn(song_elements)
+        result = parse_song_data(song_elements)
         assert result[0].artist == 'Artist One'
         assert result[0].song_name == 'Song One'
         assert result[0].web_songname == 'Artist One - Song One'
@@ -107,47 +107,47 @@ class TestParseSongData:
         html = '<span class="songName">Artist - Song - With - Dashes</span>'
         soup = BeautifulSoup(html, 'lxml')
         elements = soup.css.select('.songName')
-        result = parse_song_data.fn(elements)
+        result = parse_song_data(elements)
         assert result[0].artist == 'Artist'
         assert result[0].song_name == 'Song - With - Dashes'
 
 
 class TestCreateSongsDf:
     def test_returns_polars_dataframe(self, song_list):
-        result = create_songs_df.fn(song_list)
+        result = create_songs_df(song_list)
         assert isinstance(result, pl.DataFrame)
 
     def test_id_column_is_dropped(self, song_list):
-        result = create_songs_df.fn(song_list)
+        result = create_songs_df(song_list)
         assert 'id' not in result.columns
 
     def test_correct_columns(self, song_list):
-        result = create_songs_df.fn(song_list)
+        result = create_songs_df(song_list)
         assert set(result.columns) == {'artist', 'song_name', 'web_songname'}
 
     def test_correct_row_count(self, song_list):
-        result = create_songs_df.fn(song_list)
+        result = create_songs_df(song_list)
         assert len(result) == 3
 
 
 class TestInsertSongsIntoDb:
     def test_inserts_songs(self, songs_df, db_path):
-        insert_songs_into_db.fn(songs_df, db_path)
+        insert_songs_into_db(songs_df, db_path)
         with duckdb.connect(db_path) as conn:
             count = conn.sql('select count(*) from songs').fetchone()
         assert count is not None
         assert count[0] == 3
 
     def test_ignores_duplicates(self, songs_df, db_path):
-        insert_songs_into_db.fn(songs_df, db_path)
-        insert_songs_into_db.fn(songs_df, db_path)
+        insert_songs_into_db(songs_df, db_path)
+        insert_songs_into_db(songs_df, db_path)
         with duckdb.connect(db_path) as conn:
             count = conn.sql('select count(*) from songs').fetchone()
         assert count is not None
         assert count[0] == 3
 
     def test_inserts_correct_values(self, songs_df, db_path):
-        insert_songs_into_db.fn(songs_df, db_path)
+        insert_songs_into_db(songs_df, db_path)
         with duckdb.connect(db_path) as conn:
             row = conn.sql(
                 """-- sql

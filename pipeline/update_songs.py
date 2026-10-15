@@ -7,13 +7,10 @@ parsing it into structured data, and inserting it into the database.
 import duckdb
 import polars as pl
 from bs4 import BeautifulSoup, ResultSet, Tag
-from prefect import flow, task
-from prefect.cache_policies import NO_CACHE
 
 from models import Song
 
 
-@task
 def extract_song_elements(soup: BeautifulSoup) -> ResultSet[Tag]:
     """Extract song elements from the HTML page.
 
@@ -29,7 +26,6 @@ def extract_song_elements(soup: BeautifulSoup) -> ResultSet[Tag]:
     return soup.css.select('.songName')
 
 
-@task(cache_policy=NO_CACHE)
 def parse_song_data(soup: ResultSet[Tag]) -> list[Song]:
     """Parse song data from HTML elements into structured entries.
 
@@ -60,7 +56,6 @@ def parse_song_data(soup: ResultSet[Tag]) -> list[Song]:
     return song_list
 
 
-@task
 def create_songs_df(song_list: list[Song]) -> pl.DataFrame:
     """Convert list of Song objects to a Polars DataFrame.
 
@@ -78,7 +73,6 @@ def create_songs_df(song_list: list[Song]) -> pl.DataFrame:
     return web_songs
 
 
-@task
 def insert_songs_into_db(_new_songs: pl.DataFrame, db_path: str) -> None:
     """Insert new songs into the database.
 
@@ -97,21 +91,3 @@ def insert_songs_into_db(_new_songs: pl.DataFrame, db_path: str) -> None:
             )
             """
         )
-
-
-@flow
-def update_songs_flow(soup: BeautifulSoup, db_path: str) -> None:
-    """Complete workflow for updating song data in the database.
-
-    Extracts song elements from HTML, parses them into structured data,
-    and inserts new songs into the database.
-
-    Args:
-        soup: BeautifulSoup object containing the parsed HTML.
-        db_path: Path to DuckDB database.
-
-    """
-    song_soup = extract_song_elements(soup=soup)
-    songs = parse_song_data(soup=song_soup)
-    songs_df = create_songs_df(songs)
-    insert_songs_into_db(songs_df, db_path)

@@ -11,10 +11,10 @@ dependencies = [
   "duckdb>=1.4.3",
   "httpx>=0.28.1",
   "polars[pyarrow]>=1.37.1",
-  "prefect==3.8.6",
   "pydantic[email]>=2.12.5",
   "python-dateutil>=2.9.0.post0",
   "streamlit[auth]>=1.60.0",
+  "typer>=0.24.1",
 ]
 
 [dependency-groups]
@@ -25,7 +25,6 @@ dev = [
   "sqlfluff>=3.5.0",
   "tombi>=0.6.17",
   "ty>=0.0.1a21",
-  "typer>=0.24.1",
 ]
 
 [tool.coverage.run]
