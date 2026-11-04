@@ -2,3 +2,17 @@
 name = "sql"
 formatter = { command = "sqlfluff", args = ["format", "--dialect=duckdb", "-"] }
 auto-format = true
+
+[[language]]
+name = "sqlmesh"
+scope = "source.sqlmesh"
+grammar = "sql"
+file-types = [{ glob = "**/data_transform/**/*.sql" }]
+language-servers = ["sqlmesh"]
+comment-token = "--"
+block-comment-tokens = { start = "/*", end = "*/" }
+indent = { tab-width = 4, unit = "    " }
+auto-format = false
+
+[language-server.sqlmesh]
+command = "sqlmesh_lsp"

@@ -12,6 +12,8 @@ wheels/
 # Databases
 *.duckdb
 *.duckdb.wal
+data/
+!app/data/
 
 # Aider
 .aider*
@@ -27,3 +29,8 @@ wheels/
 
 # data staging
 stage/
+
+# SQLMesh generated files
+data_transform/.cache/
+data_transform/logs/
+logs/
