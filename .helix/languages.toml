@@ -1,6 +1,6 @@
 [[language]]
 name = "sql"
-formatter = { command = "sqlfluff", args = ["format", "--dialect=duckdb", "-"] }
+formatter = { command = "sqlfluff", args = ["format", "-"] }
 auto-format = true
 
 [[language]]
