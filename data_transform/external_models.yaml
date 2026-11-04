@@ -1,0 +1,16 @@
+- name: '"raw_data"."main"."charts"'
+  columns:
+    id: UINTEGER
+    song_id: USMALLINT
+    chart_type: TEXT
+    place: UTINYINT
+    week: DATE
+    is_new_entry: BOOLEAN
+  gateway: duckdb
+- name: '"raw_data"."main"."songs"'
+  columns:
+    id: USMALLINT
+    artist: TEXT
+    song_name: TEXT
+    web_songname: TEXT
+  gateway: duckdb
