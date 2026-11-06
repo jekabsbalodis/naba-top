@@ -4,6 +4,9 @@ Contains reusable Prefect tasks for web scraping, HTML parsing,
 and S3 data upload operations.
 """
 
+from pathlib import Path
+
+import duckdb
 import httpx
 from pydantic import HttpUrl
 
@@ -37,43 +40,78 @@ def fetch_webpage(url: str, email: str) -> httpx.Response:
     return response
 
 
-def upload_data(db_path: str, s3_config: S3Config) -> None:
-    """Upload database tables to S3 storage in Parquet format.
+def upload_data(
+    sqlm_d: str, s3_config: S3Config | None = None, local_dir: Path | None = None
+) -> None:
+    """Upload database tables in Parquet format.
 
-    Exports all database views and tables to an S3 bucket as Parquet files.
+    Exports all database views and tables to a local direcotory
+    or an S3 bucket as Parquet files.
 
     Args:
-        db_path: Path to DuckDB database file
+        sqlm_d: path to the SQLMesh data database
         s3_config: S3 configuration with credentials
+        local_dir: local directory where to upload files in DEV environment
 
     """
-    with s3_connection(db_path=db_path, s3_config=s3_config) as conn:
+    if (s3_config is None) and (local_dir is None):
+        raise ValueError('Pass exactly one of s3_config or local_dir.')
+    if s3_config is not None:
+        conn_ctx = s3_connection(s3_config=s3_config)
+        destination = 's3://naba-top'
+    else:
+        assert local_dir is not None
+        upload_dir = local_dir / 'upload'
+        upload_dir.mkdir(exist_ok=True)
+        destination = upload_dir.absolute().as_posix()
+        conn_ctx = duckdb.connect()
+
+    with conn_ctx as conn:
         conn.execute(
-            """ --sql
-
-            copy
-                (select * from all_songs_ranked)
-            to 's3://naba-top/all_songs_ranked.parquet'
-                (format parquet, overwrite_or_ignore true);
-
-            copy
-                (select * from top10)
-            to 's3://naba-top/top10.parquet'
-                (format parquet, overwrite_or_ignore true);
-
-            copy
-                (select * from top25)
-            to 's3://naba-top/top25.parquet'
-                (format parquet, overwrite_or_ignore true);
-
-            copy
-                (select * from charts)
-            to 's3://naba-top/charts.parquet'
-                (format parquet, overwrite_or_ignore true);
-
-            copy
-                (select * from songs)
-            to 's3://naba-top/songs.parquet'
-                (format parquet, overwrite_or_ignore true);
-        """,
+            """--sql
+             attach ? as sqlm_d (read_only)
+            """,
+            (sqlm_d,),
         )
+        res: list[tuple[str, str]] = conn.execute(
+            """--sql
+             select table_schema, table_name
+             from information_schema.tables
+             where table_catalog = ?
+            """,
+            ('sqlm_d',),
+        ).fetchall()
+
+        exported: list[tuple[str, str]] = []
+        for schema, view in res:
+            if '__' in schema or schema.startswith('sqlmesh'):
+                continue
+            if local_dir:
+                (Path(destination) / schema).mkdir(parents=True, exist_ok=True)
+            conn.execute(f"""--sql
+                         copy
+                             (select * from "sqlm_d"."{schema}"."{view}")
+                         to '{destination}/{schema}/{view}.parquet'
+                             (format parquet, overwrite_or_ignore true)
+                        """)
+            exported.append((schema, view))
+
+        conn.execute("""--sql
+                     create temp table manifest (
+                         schema varchar,
+                         view varchar,
+                         exported_at timestamptz default now()
+                     )
+                     """)
+        conn.executemany(
+            """--sql
+            insert into manifest (schema, view) values (?, ?)
+            """,
+            exported,
+        )
+        conn.execute(f"""--sql
+                     copy
+                         (select * from manifest)
+                     to '{destination}/manifest.json'
+                         (format json, overwrite_or_ignore true, array true)
+                    """)

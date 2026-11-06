@@ -50,9 +50,13 @@ steps:
     run: .venv/bin/python -m pipeline load-charts
     depends: [validate_charts]
 
+  - id: update_models
+    run: ./venv/bin/sqlmesh -p data_transform run
+    depends: [load_charts]
+
   - id: upload
     run: .venv/bin/python -m pipeline upload
-    depends: [load_charts]
+    depends: [update_models]
     retry_policy:
       limit: 3
       interval_sec: 60

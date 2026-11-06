@@ -82,7 +82,10 @@ def load_charts() -> None:
 @app.command()
 def upload() -> None:
     """Upload the database tables and views to S3 storage as parquet."""
-    upload_data(config.db_path(), config.s3_config())
+    if config.get_environment() == config.Environment.PROD:
+        upload_data(sqlm_d=config.sqlm_data_db_path(), s3_config=config.s3_config())
+    elif config.get_environment() == config.Environment.DEV:
+        upload_data(sqlm_d=config.sqlm_data_db_path(), local_dir=config.data_dir())
 
 
 @app.command()

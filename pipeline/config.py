@@ -1,12 +1,20 @@
 """Configuration for the naba-top pipeline."""
 
-from models import S3Config
-from pathlib import Path
-
 import os
 import re
+from enum import StrEnum
+from pathlib import Path
 
-from pydantic import HttpUrl, TypeAdapter, EmailStr
+from pydantic import EmailStr, HttpUrl, TypeAdapter
+
+from models import S3Config
+
+
+class Environment(StrEnum):
+    """Possible values for app environment."""
+
+    PROD = 'production'
+    DEV = 'development'
 
 
 def _env(name: str) -> str:
@@ -70,7 +78,6 @@ def data_dir() -> Path:
 
 def run_id() -> str:
     """Return the id of the current run shared by all of the steps."""
-
     value = (
         os.environ.get('NABA_TOP_RUN_ID') or os.environ.get('DAG_RUN_ID') or 'latest'
     )
@@ -92,8 +99,13 @@ def stage_dir() -> Path:
 
 
 def db_path() -> str:
-    """Return the validated path of the DuckDB database."""
+    """Return the validated path of the DuckDB database with raw data."""
     return validate_db_path(str(data_dir() / _env('NABA_TOP_DB_PATH')))
+
+
+def sqlm_data_db_path() -> str:
+    """Return the validated path of the DuckDB database with SQLMesh models."""
+    return validate_db_path(str(data_dir() / _env('SQLMESH_DATA_DB')))
 
 
 def scrape_target() -> tuple[str, str]:
@@ -109,3 +121,21 @@ def s3_config() -> S3Config:
         endpoint=_env('S3_ENDPOINT'),
         region=_env('S3_REGION'),
     )
+
+
+def get_environment() -> Environment:
+    """Return the current app environment.
+
+    Raises:
+        LookupError: if ENVIRONMENT is not set.
+        ValueError: if ENVIRONMENT is not a valid Environment value.
+
+    """
+    env = _env('ENVIRONMENT')
+    try:
+        return Environment(env)
+    except ValueError as e:
+        valid = ', '.join(e.value for e in Environment)
+        raise ValueError(
+            f'Invalid ENVIRONMENT: {env!r}. Must be one of: {valid}'
+        ) from e
