@@ -1,7 +1,13 @@
 MODEL (
   name sqlmesh_data.fct.charts,
   kind VIEW,
-  grain chart_id
+  grain chart_id,
+  audits (
+    unique_values(columns := (
+      chart_id
+    )),
+    unique_combination_of_columns(columns := (week, artist, song_name, chart_type, place))
+  )
 );
 
 SELECT

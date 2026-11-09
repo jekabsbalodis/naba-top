@@ -1,0 +1,80 @@
+test_mart_all_songs_ranked:
+  model: sqlmesh_data.mart.all_songs_ranked
+  inputs:
+    sqlmesh_data.fct.charts:
+      rows:
+        - {
+            chart_id: 1,
+            week: 2026-01-02,
+            artist: A,
+            song_name: s1,
+            chart_type: top10,
+            place: 1,
+            is_new_entry: true,
+          }
+        - {
+            chart_id: 2,
+            week: 2026-01-09,
+            artist: A,
+            song_name: s1,
+            chart_type: top10,
+            place: 3,
+            is_new_entry: false,
+          }
+        - {
+            chart_id: 3,
+            week: 2026-01-02,
+            artist: B,
+            song_name: s2,
+            chart_type: top25,
+            place: 5,
+            is_new_entry: true,
+          }
+        - {
+            chart_id: 4,
+            week: 2026-01-02,
+            artist: C,
+            song_name: s3,
+            chart_type: top10,
+            place: 4,
+            is_new_entry: true,
+          }
+        - {
+            chart_id: 5,
+            week: 2026-01-09,
+            artist: C,
+            song_name: s3,
+            chart_type: top25,
+            place: null,
+            is_new_entry: false,
+          }
+  outputs:
+    query:
+      rows:
+        - {
+            place: 1,
+            artist: A,
+            song_name: s1,
+            weeks_in_chart: 2,
+            raw_points: 18.0,
+            score: 18.0,
+            chart_type: top10,
+          }
+        - {
+            place: 2,
+            artist: B,
+            song_name: s2,
+            weeks_in_chart: 1,
+            raw_points: 21.0,
+            score: 8.4,
+            chart_type: top25,
+          }
+        - {
+            place: 3,
+            artist: C,
+            song_name: s3,
+            weeks_in_chart: 1,
+            raw_points: 7.0,
+            score: 7.0,
+            chart_type: top10,
+          }

@@ -1,7 +1,11 @@
 MODEL (
   name sqlmesh_data.mart.top10,
   kind VIEW,
-  grain (week, artist, song_name)
+  grain (week, artist, song_name),
+  audits (
+    unique_combination_of_columns(columns := (week, artist, song_name)),
+    not_null(columns := (week, artist, song_name))
+  )
 );
 
 SELECT

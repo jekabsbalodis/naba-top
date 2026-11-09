@@ -1,7 +1,11 @@
 MODEL (
   name sqlmesh_data.mart.all_songs_ranked,
   kind VIEW,
-  grain (artist, song_name)
+  grain (artist, song_name),
+  audits (
+    unique_combination_of_columns(columns := (artist, song_name)),
+    not_null(columns := (place, score))
+  )
 );
 
 WITH song_scores AS (
