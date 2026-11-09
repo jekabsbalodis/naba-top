@@ -28,8 +28,6 @@ def _create_page(
         chart_df, _ = get_chart(week=st.session_state[StateKeys.SELECTED_WEEK])
     elif chart_type == ChartType.TOP25:
         _, chart_df = get_chart(week=st.session_state[StateKeys.SELECTED_WEEK])
-    else:
-        raise LookupError('Nav izvēlēts tops, par kuru attēlot datus.')
 
     new_entries = chart_df.filter(pl.col('is_new_entry'))['artist', 'song_name']
 
@@ -51,21 +49,15 @@ def _create_page(
     # Page contents
     ###
 
-    if title is None:
-        raise ValueError('Nav norādīts lapas virsraksts.')
-    else:
-        st.title(title)
+    st.title(title)
 
     col1, col2 = st.columns([3, 7], gap='medium')
 
     with col1:
-        if description_chart_type is None:
-            raise ValueError('Nav norādīts lapas apraksts')
-        else:
-            st.markdown(f"""
-                        Šī sadaļa paredzēta {description_chart_type} sarakstu apskatei.
-                        Izvēlies datumu, un aplūko, kāds bija attiecīgās nedēļas tops.
-                        """)
+        st.markdown(f"""
+                    Šī sadaļa paredzēta {description_chart_type} sarakstu apskatei.
+                    Izvēlies datumu, un aplūko, kāds bija attiecīgās nedēļas tops.
+                    """)
 
         shared_slider()
         st.divider()
