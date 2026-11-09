@@ -2,26 +2,12 @@
 
 import os
 import re
-from enum import StrEnum
 from pathlib import Path
 
 from pydantic import EmailStr, HttpUrl, TypeAdapter
 
+from config import _env, data_dir
 from models import S3Config
-
-
-class Environment(StrEnum):
-    """Possible values for app environment."""
-
-    PROD = 'production'
-    DEV = 'development'
-
-
-def _env(name: str) -> str:
-    value = os.environ.get(name)
-    if not value:
-        raise LookupError(f'Environment variable {name} is not set.')
-    return value
 
 
 def validate_url(v: str) -> str:
@@ -71,11 +57,6 @@ def validate_db_path(v: str) -> str:
     return str(p)
 
 
-def data_dir() -> Path:
-    """Directory holding the database and staged files."""
-    return Path(_env('NABA_TOP_DATA_DIR'))
-
-
 def run_id() -> str:
     """Return the id of the current run shared by all of the steps."""
     value = (
@@ -121,21 +102,3 @@ def s3_config() -> S3Config:
         endpoint=_env('S3_ENDPOINT'),
         region=_env('S3_REGION'),
     )
-
-
-def get_environment() -> Environment:
-    """Return the current app environment.
-
-    Raises:
-        LookupError: if ENVIRONMENT is not set.
-        ValueError: if ENVIRONMENT is not a valid Environment value.
-
-    """
-    env = _env('ENVIRONMENT')
-    try:
-        return Environment(env)
-    except ValueError as e:
-        valid = ', '.join(e.value for e in Environment)
-        raise ValueError(
-            f'Invalid ENVIRONMENT: {env!r}. Must be one of: {valid}'
-        ) from e

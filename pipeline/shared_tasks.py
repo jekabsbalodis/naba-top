@@ -61,7 +61,7 @@ def upload_data(
         destination = 's3://naba-top'
     else:
         assert local_dir is not None
-        upload_dir = local_dir / 'upload'
+        upload_dir = local_dir
         upload_dir.mkdir(exist_ok=True)
         destination = upload_dir.absolute().as_posix()
         conn_ctx = duckdb.connect()
