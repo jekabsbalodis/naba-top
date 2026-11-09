@@ -50,14 +50,14 @@ def build_101_df() -> pl.DataFrame:
         maintain_order=True,
     )
 
-    # deduplicated_df = raw_df
-
     top10_part = deduplicated_df.filter(pl.col('chart_type') == 'top10').head(
         _CONFIG.top10_quota
     )
 
-    remaining_songs = deduplicated_df.filter(
-        ~pl.col('song_id').is_in(top10_part['song_id'])
+    remaining_songs = deduplicated_df.join(
+        top10_part.select('artist', 'song_name'),
+        on=['artist', 'song_name'],
+        how='anti',
     ).head(_CONFIG.total - len(top10_part))
 
     top100 = (

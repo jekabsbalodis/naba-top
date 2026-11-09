@@ -3,58 +3,76 @@
 Provides functions to fetch data from the database and process it for display.
 """
 
-from datetime import date
-from typing import Literal, get_args
+from collections.abc import Generator
+from contextlib import contextmanager
+from datetime import date, datetime
 
+import duckdb
 import polars as pl
 import streamlit as st
 
+import config as global_config
 from database.s3_connection import s3_connection
 from models import S3Config
 
-ViewName = Literal['songs', 'charts', 'top10', 'top25', 'all_songs_ranked']
-ALLOWED_VIEWS: frozenset[str] = frozenset(get_args(ViewName))
 
-key_id = st.secrets['garage']['key_id']
-secret = st.secrets['garage']['secret']
-endpoint = st.secrets['garage']['endpoint']
-region = st.secrets['garage']['region']
+def is_local() -> bool:
+    """Get current app environment."""
+    return global_config.get_environment() == global_config.Environment.DEV
 
-s3_config = S3Config(
-    key_id=st.secrets['garage']['key_id'],
-    secret=st.secrets['garage']['secret'],
-    endpoint=st.secrets['garage']['endpoint'],
-    region=st.secrets['garage']['region'],
-)
+
+@contextmanager
+def db_context() -> Generator[tuple[duckdb.DuckDBPyConnection, str]]:
+    """Yield a DuckDB connection and base source path for the current environment."""
+    if is_local():
+        source = global_config.local_upload_dir().absolute().as_posix()
+        with duckdb.connect() as conn:
+            yield conn, source
+    else:
+        s3_config = S3Config(
+            key_id=st.secrets['garage']['key_id'],
+            secret=st.secrets['garage']['secret'],
+            endpoint=st.secrets['garage']['endpoint'],
+            region=st.secrets['garage']['region'],
+        )
+        with s3_connection(s3_config=s3_config) as conn:
+            yield conn, 's3://naba-top'
+
+
+@st.cache_data(ttl=60 * 60 * 24)
+def get_available_views() -> list[tuple[str, str, datetime]]:
+    """Get schemas and views available in S3 storage."""
+    with db_context() as (conn, source):
+        manifest = source + '/manifest.json'
+        return conn.execute(
+            """--sql
+            select * from read_json(?)
+            """,
+            (manifest,),
+        ).fetchall()
 
 
 @st.cache_data(ttl=60 * 60 * 24, show_spinner='Lejuplādē datus...', show_time=True)
-def get_view(*, view: ViewName) -> pl.DataFrame:
+def get_view(schema, view) -> pl.DataFrame:
     """Get the database view or table.
 
     Args:
+        schema: Name of the database schema.
         view: Name of the database view or table.
 
     Returns:
         The selected view.
 
     """
-    if view not in ALLOWED_VIEWS:
+    available = get_available_views()
+    allowed = {(s, v) for s, v, _ in available}
+    if (schema, view) not in allowed:
         raise ValueError(
-            f"""Norādīts neatļauts skata vai tabulas nosaukums,
-            izvēlies kādu no {ALLOWED_VIEWS}."""
+            f'Nezināms skats: {schema}.{view}.\nIzvēlies kādu no {allowed}.'
         )
-    with s3_connection(s3_config=s3_config) as conn:
-        df = conn.sql(
-            f"""--sql
-            select
-                *
-            from
-                's3://naba-top/{view}.parquet';
-            """,
-        ).pl()
-
-    return df
+    with db_context() as (conn, source):
+        base = f'{source}/{schema}/{view}'
+        return conn.read_parquet(f'{base}.parquet').pl()
 
 
 @st.cache_data(ttl=60 * 60 * 24, show_spinner=False)
@@ -68,8 +86,8 @@ def get_chart(week: date) -> tuple[pl.DataFrame, pl.DataFrame]:
         Tuple of top10 and top25 charts for the selected week.
 
     """
-    top_10_df = get_view(view='top10')
-    top_25_df = get_view(view='top25')
+    top_10_df = get_view(schema='mart', view='top10')
+    top_25_df = get_view(schema='mart', view='top25')
 
     top_10_df = top_10_df.filter(pl.col('week') == week)
     top_25_df = top_25_df.filter(pl.col('week') == week)
@@ -85,7 +103,7 @@ def get_date_range() -> tuple[date, date]:
         Tuple of min_week and max_week
 
     """
-    charts = get_view(view='charts')
+    charts = get_view(schema='fct', view='charts')
 
     weeks = charts['week']
 
@@ -109,4 +127,4 @@ def get_all_songs_ranked() -> pl.DataFrame:
         Dataframe of all songs ranked.
 
     """
-    return get_view(view='all_songs_ranked')
+    return get_view(schema='mart', view='all_songs_ranked')
