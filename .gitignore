@@ -27,9 +27,9 @@ data/
 
 # .env
 .env
-
-# data staging
-stage/
+env.toml
+env.*.toml
+!env.example.toml
 
 # SQLMesh generated files
 data_transform/.cache/
