@@ -7,7 +7,7 @@ and S3 data upload operations.
 from pathlib import Path
 
 import duckdb
-import httpx
+import httpx2 as httpx
 from pydantic import HttpUrl
 
 from database.s3_connection import s3_connection

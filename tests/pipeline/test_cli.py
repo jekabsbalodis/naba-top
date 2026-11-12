@@ -2,7 +2,7 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import duckdb
-import httpx
+import httpx2 as httpx
 import polars as pl
 import pytest
 from pydantic import ValidationError

@@ -27,8 +27,8 @@ streamlit = [
 
 pipeline = [
   "beautifulsoup4[lxml]>=4.14.3",
-  "httpx>=0.28.1",
   "pydantic[email]>=2.12.5",
+  "httpx2>=2.16.0",
   "sqlmesh[lsp]>=0.236.3",
   "typer>=0.24.1",
 ]
