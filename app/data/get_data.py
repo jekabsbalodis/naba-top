@@ -11,29 +11,32 @@ import duckdb
 import polars as pl
 import streamlit as st
 
-import config as global_config
+from app.config import get_config, local_data_dir
 from database.s3_connection import s3_connection
 from models import S3Config
+
+config = get_config()
 
 
 def is_local() -> bool:
     """Get current app environment."""
-    return global_config.get_environment() == global_config.Environment.DEV
+    return config.environment == 'development'
 
 
 @contextmanager
 def db_context() -> Generator[tuple[duckdb.DuckDBPyConnection, str]]:
     """Yield a DuckDB connection and base source path for the current environment."""
     if is_local():
-        source = global_config.local_upload_dir().absolute().as_posix()
+        source = local_data_dir(config)
+        assert source is not None
         with duckdb.connect() as conn:
-            yield conn, source
+            yield conn, source.as_posix()
     else:
         s3_config = S3Config(
-            key_id=st.secrets['garage']['key_id'],
-            secret=st.secrets['garage']['secret'],
-            endpoint=st.secrets['garage']['endpoint'],
-            region=st.secrets['garage']['region'],
+            key_id=config.garage.read.key_id,
+            secret=config.garage.read.secret.get_secret_value(),
+            endpoint=config.garage.endpoint,
+            region=config.garage.region,
         )
         with s3_connection(s3_config=s3_config) as conn:
             yield conn, 's3://naba-top'

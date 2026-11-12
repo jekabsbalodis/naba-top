@@ -4,57 +4,9 @@ import os
 import re
 from pathlib import Path
 
-from pydantic import EmailStr, HttpUrl, TypeAdapter
+from config_models import Config
 
-from config import _env, data_dir
-from models import S3Config
-
-
-def validate_url(v: str) -> str:
-    """Return `v` unchanged if it is a valid HTTP(S) URL.
-
-    Args:
-        v: URL to validate.
-
-    Returns:
-        The same string.
-
-    """
-    TypeAdapter(HttpUrl).validate_python(v)
-    return v
-
-
-def validate_email(v: str) -> str:
-    """Return `v` unchanged if it is a valid email address.
-
-    Args:
-        v: Email address to validate.
-
-    Returns:
-        The same string.
-
-    """
-    TypeAdapter(EmailStr).validate_python(v)
-    return v
-
-
-def validate_db_path(v: str) -> str:
-    """Return the normalized path if its parent directory exists.
-
-    Args:
-        v: Database file path.
-
-    Returns:
-        The path as string.
-
-    Raises:
-        ValueError: If the parent directory does not exist.
-
-    """
-    p = Path(v)
-    if not p.parent.exists():
-        raise ValueError(f'DB_PATH parent directory does not exist: {p.parent}')
-    return str(p)
+config = Config()
 
 
 def run_id() -> str:
@@ -74,31 +26,8 @@ def stage_dir() -> Path:
     dir for each run. For manual runs and tests it is `<data dir>/stage/<run id>`.
     """
     artifacts = os.environ.get('DAG_RUN_ARTIFACTS_DIR')
-    path = Path(artifacts) if artifacts else data_dir() / 'stage' / run_id()
-    path.mkdir(parents=True, exist_ok=True)
-    return path
-
-
-def db_path() -> str:
-    """Return the validated path of the DuckDB database with raw data."""
-    return validate_db_path(str(data_dir() / _env('NABA_TOP_DB_PATH')))
-
-
-def sqlm_data_db_path() -> str:
-    """Return the validated path of the DuckDB database with SQLMesh models."""
-    return validate_db_path(str(data_dir() / _env('SQLMESH_DATA_DB')))
-
-
-def scrape_target() -> tuple[str, str]:
-    """Return the validated (url, email) used for the scraping request."""
-    return validate_url(_env('NABA_TOP_URL')), validate_email(_env('NABA_TOP_EMAIL'))
-
-
-def s3_config() -> S3Config:
-    """S3 credentials from the environment."""
-    return S3Config(
-        key_id=_env('S3_KEY_ID'),
-        secret=_env('S3_SECRET'),
-        endpoint=_env('S3_ENDPOINT'),
-        region=_env('S3_REGION'),
-    )
+    if artifacts:
+        path = Path(artifacts)
+        path.mkdir(parents=True, exist_ok=True)
+        return path
+    return config.data.stage_dir(run_id=run_id())

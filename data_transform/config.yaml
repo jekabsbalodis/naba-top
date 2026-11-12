@@ -9,13 +9,13 @@ gateways:
       catalogs:
         sqlmesh_state:
           type: duckdb
-          path: "{{ env_var('NABA_TOP_DATA_DIR') }}/{{ env_var('SQLMESH_STATE_DB') }}"
+          path: "{{ env_var('NABA_TOP_DATA__DATA_DIR') }}/{{ env_var('NABA_TOP_DATA__SQLMESH_STATE_DB') }}"
         sqlmesh_data:
           type: duckdb
-          path: "{{ env_var('NABA_TOP_DATA_DIR') }}/{{ env_var('SQLMESH_DATA_DB') }}"
+          path: "{{ env_var('NABA_TOP_DATA__DATA_DIR') }}/{{ env_var('NABA_TOP_DATA__SQLMESH_DATA_DB') }}"
         raw_data:
           type: duckdb
-          path: "{{ env_var('NABA_TOP_DATA_DIR') }}/{{ env_var('NABA_TOP_DB_PATH') }}"
+          path: "{{ env_var('NABA_TOP_DATA__DATA_DIR') }}/{{ env_var('NABA_TOP_DATA__RAW_DATA_DB') }}"
           read_only: true
       concurrent_tasks: 1
       # register_comments: True

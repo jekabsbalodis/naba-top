@@ -7,6 +7,9 @@ requires-python = ">= 3.14"
 authors = [{ name = "Jēkabs Balodis", email = "signalingpigeon@duck.com" }]
 dependencies = [
   "duckdb>=1.4.3",
+  "pydantic-settings>=2.16.2",
+  "pydantic[email]>=2.12.5",
+  "typer>=0.24.1",
 ]
 
 [dependency-groups]
@@ -27,10 +30,8 @@ streamlit = [
 
 pipeline = [
   "beautifulsoup4[lxml]>=4.14.3",
-  "pydantic[email]>=2.12.5",
   "httpx2>=2.16.0",
   "sqlmesh[lsp]>=0.236.3",
-  "typer>=0.24.1",
 ]
 
 [tool.coverage.run]
