@@ -5,7 +5,7 @@ It displays the Top 10 and Top 25 charts for the latest week as well as some inf
 about the page and Radio Naba.
 """
 
-from datetime import date, timedelta
+from datetime import date
 from typing import Final
 
 import streamlit as st
