@@ -127,7 +127,7 @@ The files are saved in one of these directories:
 Run one step with `uv run python -m pipeline <step>`
 and all the steps in one process with `uv run python -m pipeline run-all`.
 
-[!IMPORTANT]
+**IMPORTANT:**
 Before running `update-models`, execute `sqlmesh plan` command so the `prod` environment
 in SQLMesh database is available.
 

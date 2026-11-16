@@ -7,6 +7,7 @@ from pathlib import Path
 import polars as pl
 import typer
 from bs4 import BeautifulSoup
+from sqlmesh import Context
 
 from models import S3Config
 from pipeline.config import config, stage_dir
@@ -84,6 +85,19 @@ def load_charts() -> None:
 
 
 @app.command()
+def update_models() -> None:
+    """Run SQLMesh transformation (same as `sqlmesh -p data_transform run`)."""
+    os.environ['NABA_TOP_DATA__DATA_DIR'] = str(config.data.data_dir)
+    os.environ['NABA_TOP_DATA__RAW_DATA_DB'] = config.data.raw_data_db
+    os.environ['NABA_TOP_DATA__SQLMESH_DATA_DB'] = config.data.sqlmesh_data_db
+    os.environ['NABA_TOP_DATA__SQLMESH_STATE_DB'] = config.data.sqlmesh_state_db
+
+    status = Context(paths='data_transform').run()
+    if status.is_failure:
+        raise RuntimeError(f'SQLMesh run failed: {status}')
+
+
+@app.command()
 def upload() -> None:
     """Upload the database tables and views to S3 storage as parquet."""
     if config.environment == 'production':
@@ -119,6 +133,7 @@ def run_all() -> None:
         parse_charts,
         validate_charts,
         load_charts,
+        update_models,
         upload,
     ):
         typer.echo(f'==> {step.__name__}', err=True)

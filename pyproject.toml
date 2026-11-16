@@ -6,7 +6,7 @@ readme = "README.md"
 requires-python = ">= 3.14"
 authors = [{ name = "Jēkabs Balodis", email = "signalingpigeon@duck.com" }]
 dependencies = [
-  "duckdb>=1.4.3",
+  "duckdb<2",
   "pydantic-settings>=2.16.2",
   "pydantic[email]>=2.12.5",
   "typer>=0.24.1",
