@@ -1,9 +1,8 @@
 import duckdb
 import polars as pl
 import pytest
-from bs4 import BeautifulSoup, ResultSet
+from bs4 import BeautifulSoup
 
-from database.init_db import init_db
 from models import Song
 from pipeline.update_songs import (
     create_songs_df,
@@ -12,153 +11,78 @@ from pipeline.update_songs import (
     parse_song_data,
 )
 
-
-@pytest.fixture
-def sample_html() -> BeautifulSoup:
-    html = """
-    <html><body>
-        <span class="songName">Artist One - Song One</span>
-        <span class="songName">Artist Two - Song Two</span>
-        <span class="songName">Artist Three - Song Three</span>
-    </body></html>
-    """
-    return BeautifulSoup(html, 'lxml')
+HTML = """
+<html><body>
+  <span class="songName">Artist One - Song One</span>
+  <span class="songName">Artist Two - Song Two</span>
+</body></html>
+"""
 
 
 @pytest.fixture
-def song_elements(sample_html) -> ResultSet:
-    return sample_html.css.select('.songName')
+def song_elements():
+    return extract_song_elements(BeautifulSoup(HTML, 'lxml'))
 
 
 @pytest.fixture
-def song_list() -> list[Song]:
+def songs() -> list[Song]:
     return [
-        Song(
-            artist='Artist One',
-            song_name='Song One',
-            web_songname='Artist One - Song One',
-        ),
-        Song(
-            artist='Artist Two',
-            song_name='Song Two',
-            web_songname='Artist Two - Song Two',
-        ),
-        Song(
-            artist='Artist Three',
-            song_name='Song Three',
-            web_songname='Artist Three - Song Three',
-        ),
+        Song('Artist One', 'Song One', 'Artist One - Song One'),
+        Song('Artist Two', 'Song Two', 'Artist Two - Song Two'),
     ]
 
 
-@pytest.fixture
-def songs_df(song_list) -> pl.DataFrame:
-    df = pl.DataFrame(song_list)
-    return df.drop('id')
+def test_extract_finds_all_song_elements(song_elements):
+    assert [el.text for el in song_elements] == [
+        'Artist One - Song One',
+        'Artist Two - Song Two',
+    ]
 
 
-@pytest.fixture(autouse=True)
-def setup_db(db_path):
-    """Initialize test DB before each test and clean songs table after"""
-    init_db(db_path)
-    yield
+def test_extract_from_empty_page_finds_nothing():
+    assert len(extract_song_elements(BeautifulSoup('<html></html>', 'lxml'))) == 0
+
+
+def test_parse_splits_artist_and_song(song_elements):
+    first = parse_song_data(song_elements)[0]
+    assert first == Song('Artist One', 'Song One', 'Artist One - Song One')
+
+
+def test_parse_splits_only_on_the_first_dash():
+    html = '<span class="songName">Artist - Song - With - Dashes</span>'
+    elements = extract_song_elements(BeautifulSoup(html, 'lxml'))
+    song = parse_song_data(elements)[0]
+    assert (song.artist, song.song_name) == ('Artist', 'Song - With - Dashes')
+
+
+def test_parse_fails_on_a_name_without_a_separator():
+    html = '<span class="songName">No separator here</span>'
+    elements = extract_song_elements(BeautifulSoup(html, 'lxml'))
+    with pytest.raises(ValueError):
+        parse_song_data(elements)
+
+
+def test_songs_df_has_no_id_column(songs):
+    df = create_songs_df(songs)
+    assert set(df.columns) == {'artist', 'song_name', 'web_songname'}
+    assert len(df) == 2
+
+
+def test_insert_adds_the_songs(songs, db_path):
+    insert_songs_into_db(create_songs_df(songs), db_path)
     with duckdb.connect(db_path) as conn:
-        conn.execute('delete from songs')
+        rows = conn.execute(
+            'select artist, song_name, web_songname from songs order by id'
+        )
+        assert rows.fetchall() == [
+            ('Artist One', 'Song One', 'Artist One - Song One'),
+            ('Artist Two', 'Song Two', 'Artist Two - Song Two'),
+        ]
 
 
-class TestExtractSongElements:
-    def test_returns_result_set(self, sample_html):
-        result = extract_song_elements(sample_html)
-        assert isinstance(result, ResultSet)
-
-    def test_returns_correct_count(self, sample_html):
-        result = extract_song_elements(sample_html)
-        assert len(result) == 3
-
-    def test_returns_correct_text(self, sample_html):
-        result = extract_song_elements(sample_html)
-        texts = [el.text for el in result]
-        assert 'Artist One - Song One' in texts
-
-    def test_empty_page_returns_empty_result(self):
-        soup = BeautifulSoup('<html><body></body></html>', 'lxml')
-        result = extract_song_elements(soup)
-        assert len(result) == 0
-
-
-class TestParseSongData:
-    def test_returns_list_of_songs(self, song_elements):
-        result = parse_song_data(song_elements)
-        assert isinstance(result, list)
-        assert all(isinstance(s, Song) for s in result)
-
-    def test_returns_correct_count(self, song_elements):
-        result = parse_song_data(song_elements)
-        assert len(result) == 3
-
-    def test_parses_artist_and_song_name(self, song_elements):
-        result = parse_song_data(song_elements)
-        assert result[0].artist == 'Artist One'
-        assert result[0].song_name == 'Song One'
-        assert result[0].web_songname == 'Artist One - Song One'
-
-    def test_song_name_with_dash(self):
-        """Song names that contain ' - ' should split on first occurrence only"""
-        html = '<span class="songName">Artist - Song - With - Dashes</span>'
-        soup = BeautifulSoup(html, 'lxml')
-        elements = soup.css.select('.songName')
-        result = parse_song_data(elements)
-        assert result[0].artist == 'Artist'
-        assert result[0].song_name == 'Song - With - Dashes'
-
-
-class TestCreateSongsDf:
-    def test_returns_polars_dataframe(self, song_list):
-        result = create_songs_df(song_list)
-        assert isinstance(result, pl.DataFrame)
-
-    def test_id_column_is_dropped(self, song_list):
-        result = create_songs_df(song_list)
-        assert 'id' not in result.columns
-
-    def test_correct_columns(self, song_list):
-        result = create_songs_df(song_list)
-        assert set(result.columns) == {'artist', 'song_name', 'web_songname'}
-
-    def test_correct_row_count(self, song_list):
-        result = create_songs_df(song_list)
-        assert len(result) == 3
-
-
-class TestInsertSongsIntoDb:
-    def test_inserts_songs(self, songs_df, db_path):
-        insert_songs_into_db(songs_df, db_path)
-        with duckdb.connect(db_path) as conn:
-            count = conn.sql('select count(*) from songs').fetchone()
-        assert count is not None
-        assert count[0] == 3
-
-    def test_ignores_duplicates(self, songs_df, db_path):
-        insert_songs_into_db(songs_df, db_path)
-        insert_songs_into_db(songs_df, db_path)
-        with duckdb.connect(db_path) as conn:
-            count = conn.sql('select count(*) from songs').fetchone()
-        assert count is not None
-        assert count[0] == 3
-
-    def test_inserts_correct_values(self, songs_df, db_path):
-        insert_songs_into_db(songs_df, db_path)
-        with duckdb.connect(db_path) as conn:
-            row = conn.sql(
-                """-- sql
-                select
-                    artist,
-                    song_name,
-                    web_songname
-                from
-                    songs
-                where
-                    artist = 'Artist One'
-                """
-            ).fetchone()
-        assert row == ('Artist One', 'Song One', 'Artist One - Song One')
+def test_insert_ignores_songs_that_exist(songs, db_path):
+    df: pl.DataFrame = create_songs_df(songs)
+    insert_songs_into_db(df, db_path)
+    insert_songs_into_db(df, db_path)
+    with duckdb.connect(db_path) as conn:
+        assert conn.execute('select count(*) from songs').fetchone() == (2,)

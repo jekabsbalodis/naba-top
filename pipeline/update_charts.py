@@ -89,7 +89,7 @@ def parse_chart_data(soup: ResultSet[Tag], db_path: str) -> list[ChartEntry]:
                         'No tag for web_songname found in the parsed webpage'
                     )
                 web_songname: str = web_songname_tag.text
-                song_id_res = conn.sql(
+                song_id_res = conn.execute(
                     """-- sql
                     select
                         id
@@ -98,7 +98,7 @@ def parse_chart_data(soup: ResultSet[Tag], db_path: str) -> list[ChartEntry]:
                     where
                         web_songname = ?;
                     """,
-                    params=[web_songname],
+                    parameters=[web_songname],
                 ).fetchone()
             if song_id_res is None:
                 raise LookupError(
@@ -118,7 +118,7 @@ def parse_chart_data(soup: ResultSet[Tag], db_path: str) -> list[ChartEntry]:
                 place = None
 
             with duckdb.connect(db_path, read_only=True) as conn:
-                old_entry_res = conn.sql(
+                old_entry_res = conn.execute(
                     """-- sql
                     select
                         1
@@ -127,7 +127,7 @@ def parse_chart_data(soup: ResultSet[Tag], db_path: str) -> list[ChartEntry]:
                     where
                         song_id = ?;
                     """,
-                    params=[song_id],
+                    parameters=[song_id],
                 ).fetchone()
 
             if old_entry_res is not None:
@@ -162,7 +162,7 @@ def validate_charts_count(charts_df: pl.DataFrame) -> None:
     Ensures top10 has exactly 10 ranked songs and top25 has exactly 25.
 
     Args:
-        chart_entries: List of parsed chart entries.
+        charts_df: Dataframe with parsed chart entries.
 
     Raises:
         ValueError: If actual ranked entry count doesn't match expected count.
