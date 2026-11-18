@@ -15,12 +15,12 @@ handler_on:
     run: https --ignore-stdin --check-status POST "$NTFY_URL" "Title:naba-top failed" --raw "DAG run failed, see the Dagu UI"
 
 secrets:
-  - name: S3_SECRET
+  - name: NABA_TOP_GARAGE__WRITE__SECRET
     provider: env
-    key: S3_SECRET
-  - name: NTFY_URL
+    key: NABA_TOP_GARAGE__WRITE__SECRET
+  - name: NABA_TOP_PIPELINE__NTFY_URL
     provider: env
-    key: NTFY_URL
+    key: NABA_TOP_PIPELINE__NTFY_URL
 
 steps:
   - id: fetch
