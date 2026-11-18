@@ -6,10 +6,13 @@ readme = "README.md"
 requires-python = ">= 3.14"
 authors = [{ name = "Jēkabs Balodis", email = "signalingpigeon@duck.com" }]
 dependencies = [
+  "babel>=2.18.0",
   "duckdb<2",
+  "polars[pyarrow]>=1.37.1",
   "pydantic-settings>=2.16.2",
   "pydantic[email]>=2.12.5",
-  "typer>=0.24.1",
+  "python-dateutil>=2.9.0.post0",
+  "streamlit[auth]>=1.60.0",
 ]
 
 [dependency-groups]
@@ -21,23 +24,23 @@ dev = [
   "tombi>=0.6.17",
   "ty>=0.0.1a21",
 ]
-streamlit = [
-  "babel>=2.18.0",
-  "polars[pyarrow]>=1.37.1",
-  "python-dateutil>=2.9.0.post0",
-  "streamlit[auth]>=1.60.0",
-]
 
 pipeline = [
   "beautifulsoup4[lxml]>=4.14.3",
   "httpx2>=2.16.0",
   "sqlmesh[lsp]>=0.236.3",
+  "typer>=0.24.1",
 ]
 
 [tool.coverage.run]
 omit = ["tests/*"]
 source = [
   ".",
+]
+
+[tool.pytest.ini_options]
+filterwarnings = [
+  "ignore:Config key .toml_file.:UserWarning",
 ]
 
 [tool.ruff]
@@ -71,8 +74,3 @@ exclude = [".venv/**"]
 [tool.ty.environment]
 python-platform = "linux"
 python-version = "3.14"
-
-[tool.pytest.ini_options]
-filterwarnings = [
-  "ignore:Config key .toml_file.:UserWarning",
-]
