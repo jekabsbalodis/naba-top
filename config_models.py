@@ -172,12 +172,12 @@ class Data(StreamlitData):
     @model_validator(mode='after')
     def _check_databases_are_different_files(self) -> Self:
         paths = {
-            'raw_dta_db': self.raw_data_path,
+            'raw_data_db': self.raw_data_path,
             'sqlmesh_data_db': self.sqlmesh_data_path,
             'sqlmesh_state_db': self.sqlmesh_state_path,
         }
         if len(set(paths.values())) != len(paths):
-            raise ValueError(f"Each database needs it's own file, got: {paths}")
+            raise ValueError(f'Each database needs its own file, got: {paths}')
         return self
 
     def ensure_upload_dir(self) -> Path:

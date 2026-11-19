@@ -1,8 +1,10 @@
 """End to end: run the real pipeline steps against a fake website and temp folders."""
 
 import os
+import re
 import shutil
 from pathlib import Path
+from types import SimpleNamespace
 
 import duckdb
 import polars as pl
@@ -16,6 +18,48 @@ from tests.helpers import make_sqlmesh_db, naba_page
 
 runner = CliRunner()
 
+# The names `data_transform/config.yaml` reads, set by the `update-models` step.
+SQLMESH_ENV_VARS = (
+    'NABA_TOP_DATA__DATA_DIR',
+    'NABA_TOP_DATA__RAW_DATA_DB',
+    'NABA_TOP_DATA__SQLMESH_DATA_DB',
+    'NABA_TOP_DATA__SQLMESH_STATE_DB',
+)
+
+
+class FakeSQLMesh:
+    """Stands in for `sqlmesh.Context`: records the call instead of running SQLMesh.
+
+    A real `run` needs a `prod` environment that `sqlmesh plan` creates once,
+    and which models are due depends on today's date, so it is not run in tests.
+    """
+
+    def __init__(self) -> None:
+        self.project: str | None = None
+        self.runs = 0
+        self.env: dict[str, str | None] = {}
+        self.failure = False
+
+    def __call__(self, paths: str) -> FakeSQLMesh:  # `Context(paths=...)`
+        self.project = paths
+        return self
+
+    def run(self) -> SimpleNamespace:
+        self.runs += 1
+        self.env = {name: os.environ.get(name) for name in SQLMESH_ENV_VARS}
+        return SimpleNamespace(is_failure=self.failure)
+
+
+@pytest.fixture(autouse=True)
+def sqlmesh(monkeypatch) -> FakeSQLMesh:
+    # conftest already sets these for the whole session; clear them so the tests
+    # can tell whether the `update-models` step sets them itself
+    for name in SQLMESH_ENV_VARS:
+        monkeypatch.delenv(name, raising=False)
+    fake = FakeSQLMesh()
+    monkeypatch.setattr('pipeline.__main__.Context', fake)
+    return fake
+
 
 @pytest.fixture(autouse=True)
 def clean_slate(monkeypatch, web):
@@ -25,12 +69,12 @@ def clean_slate(monkeypatch, web):
     data = config.data
     shutil.rmtree(data.data_dir / 'stage', ignore_errors=True)
     shutil.rmtree(data.upload_dir, ignore_errors=True)
-    for db in (data.raw_data_db, data.sqlmesh_data_db):
+    for db in (data.raw_data_path, data.sqlmesh_data_path):
         for suffix in ('', '.wal'):
-            Path(db + suffix).unlink(missing_ok=True)
-    config.data.ensure_database_dirs()
-    init_db(data.raw_data_db)
-    make_sqlmesh_db(data.sqlmesh_data_db)  # normally created by SQLMesh
+            Path(f'{db}{suffix}').unlink(missing_ok=True)
+    data.ensure_database_dirs()
+    init_db(str(data.raw_data_path))
+    make_sqlmesh_db(str(data.sqlmesh_data_path))  # normally created by SQLMesh
     web.html = naba_page()  # 45 songs: 10 + 25 ranked, 5 unranked in each chart
     yield
     os.environ.pop('NABA_TOP_RUN_ID', None)  # `run-all` sets this itself
@@ -43,7 +87,7 @@ def run(*args: str):
 
 
 def count(table: str) -> int:
-    with duckdb.connect(config.data.raw_data_db) as conn:
+    with duckdb.connect(str(config.data.raw_data_path)) as conn:
         row = conn.execute(f'select count(*) from {table}').fetchone()
     assert row is not None
     return row[0]
@@ -64,6 +108,42 @@ class TestRunAll:
         run('run-all')
         assert config.data.require_upload_dir().is_dir()  # same check the app does
         assert (config.data.upload_dir / 'mart' / 'top10.parquet').exists()
+
+
+class TestUpdateModels:
+    def test_runs_sqlmesh_on_the_data_transform_project(self, sqlmesh):
+        run('update-models')
+        assert sqlmesh.runs == 1
+        assert Path(sqlmesh.project or '').name == 'data_transform'
+        assert (Path(sqlmesh.project or '') / 'config.yaml').is_file()
+
+    def test_gives_sqlmesh_the_database_locations(self, sqlmesh):
+        run('update-models')
+        data = config.data
+        assert sqlmesh.env == {
+            'NABA_TOP_DATA__DATA_DIR': str(data.data_dir),
+            'NABA_TOP_DATA__RAW_DATA_DB': data.raw_data_db,
+            'NABA_TOP_DATA__SQLMESH_DATA_DB': data.sqlmesh_data_db,
+            'NABA_TOP_DATA__SQLMESH_STATE_DB': data.sqlmesh_state_db,
+        }
+
+    def test_sqlmesh_config_only_uses_variables_the_step_sets(self, sqlmesh):
+        """Catches a renamed variable in config.yaml or in the step."""
+        run('update-models')
+        config_yaml = (Path(sqlmesh.project or '') / 'config.yaml').read_text()
+        used = set(re.findall(r"env_var\('([A-Z0-9_]+)'\)", config_yaml))
+        assert used
+        assert used <= set(SQLMESH_ENV_VARS)
+
+    def test_fails_when_sqlmesh_fails(self, sqlmesh):
+        sqlmesh.failure = True
+        result = runner.invoke(app, ['update-models'])
+        assert result.exit_code != 0
+        assert isinstance(result.exception, RuntimeError)
+
+    def test_run_all_includes_it(self, sqlmesh):
+        run('run-all')
+        assert sqlmesh.runs == 1
 
 
 class TestSteps:

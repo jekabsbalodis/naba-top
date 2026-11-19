@@ -28,6 +28,7 @@ from pipeline.update_songs import (
 
 app = typer.Typer(add_completion=False, no_args_is_help=True)
 
+SQLMESH_PROJECT = Path(__file__).resolve().parent.parent / 'data_transform'
 PAGE = 'page.html'
 SONGS = 'songs.parquet'
 CHARTS = 'charts.parquet'
@@ -63,7 +64,9 @@ def parse_songs() -> None:
 @app.command()
 def load_songs() -> None:
     """Insert songs from parquet file into the database."""
-    insert_songs_into_db(pl.read_parquet(stage_dir() / SONGS), config.data.raw_data_db)
+    insert_songs_into_db(
+        pl.read_parquet(stage_dir() / SONGS), str(config.data.raw_data_path)
+    )
 
 
 @app.command()
@@ -71,7 +74,7 @@ def parse_charts() -> None:
     """Parse charts from the saved HTML file into charts.parquet."""
     stage = stage_dir()
     entries = parse_chart_data(
-        extract_chart_elements(_soup(stage)), config.data.raw_data_db
+        extract_chart_elements(_soup(stage)), str(config.data.raw_data_path)
     )
     create_charts_df(entries).write_parquet(stage / CHARTS)
 
@@ -86,7 +89,7 @@ def validate_charts() -> None:
 def load_charts() -> None:
     """Insert charts from parquet file into the database."""
     insert_chart_data_into_db(
-        pl.read_parquet(stage_dir() / CHARTS), config.data.raw_data_db
+        pl.read_parquet(stage_dir() / CHARTS), str(config.data.raw_data_path)
     )
 
 
@@ -98,7 +101,7 @@ def update_models() -> None:
     os.environ['NABA_TOP_DATA__SQLMESH_DATA_DB'] = config.data.sqlmesh_data_db
     os.environ['NABA_TOP_DATA__SQLMESH_STATE_DB'] = config.data.sqlmesh_state_db
 
-    status = Context(paths='data_transform').run()
+    status = Context(paths=str(SQLMESH_PROJECT)).run()
     if status.is_failure:
         raise RuntimeError(f'SQLMesh run failed: {status}')
 
@@ -108,7 +111,7 @@ def upload() -> None:
     """Upload the database tables and views to S3 storage as parquet."""
     if config.environment == 'production':
         upload_data(
-            sqlm_d=config.data.sqlmesh_data_db,
+            sqlm_d=str(config.data.sqlmesh_data_path),
             s3_config=S3Config(
                 key_id=config.garage.write.key_id,
                 secret=config.garage.write.secret.get_secret_value(),
@@ -118,7 +121,7 @@ def upload() -> None:
         )
     else:
         upload_data(
-            sqlm_d=config.data.sqlmesh_data_db,
+            sqlm_d=str(config.data.sqlmesh_data_path),
             local_dir=config.data.ensure_upload_dir(),
         )
 
