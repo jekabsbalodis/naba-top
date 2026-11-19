@@ -68,10 +68,13 @@ def upload_data(
 
     with conn_ctx as conn:
         conn.execute(
-            """--sql
-             attach ? as sqlm_d (read_only)
+            f"""--sql
+             attach '{sqlm_d}' as sqlm_d (read_only)
             """,
-            (sqlm_d,),
+            # """--sql
+            #  attach ? as sqlm_d (read_only)
+            # """,
+            # (sqlm_d,),
         )
         res: list[tuple[str, str]] = conn.execute(
             """--sql

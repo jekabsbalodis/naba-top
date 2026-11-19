@@ -1,6 +1,6 @@
 """Models for the app settings."""
 
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from typing import Annotated, Literal, Self
 
 from pydantic import (
@@ -36,8 +36,29 @@ def _secret_is_not_empty(s: SecretStr) -> SecretStr:
     return s
 
 
+def _relative_path_inside_data_dir(value: str) -> str:
+    path = PurePosixPath(value)
+    if (
+        '\\' in value
+        or value.endswith('/')
+        or path.is_absolute()
+        or '..' in path.parts
+        or not path.name
+    ):
+        raise ValueError(
+            'Use a relative path with `/` inside `data_dir`, '
+            f'like `database/raw.duckdb`.\n{value}\n{path}'
+        )
+    return value
+
+
 NonEmptyStr = Annotated[str, StringConstraints(min_length=1, strip_whitespace=True)]
 NonEmptySecret = Annotated[SecretStr, AfterValidator(_secret_is_not_empty)]
+DbFileName = Annotated[
+    str,
+    StringConstraints(min_length=1, strip_whitespace=True),
+    AfterValidator(_relative_path_inside_data_dir),
+]
 AbsolutePath = Annotated[Path, AfterValidator(_path_is_absolute)]
 
 
@@ -129,15 +150,51 @@ class Data(StreamlitData):
 
     model_config = ConfigDict(extra='forbid')
 
-    raw_data_db: NonEmptyStr
-    sqlmesh_data_db: NonEmptyStr
-    sqlmesh_state_db: NonEmptyStr
+    raw_data_db: DbFileName
+    sqlmesh_data_db: DbFileName
+    sqlmesh_state_db: DbFileName
+
+    @property
+    def raw_data_path(self) -> Path:
+        """Full path of the raw scraped data database."""
+        return self.data_dir / self.raw_data_db
+
+    @property
+    def sqlmesh_data_path(self) -> Path:
+        """Full path of the database holding SQLMesh models."""
+        return self.data_dir / self.sqlmesh_data_db
+
+    @property
+    def sqlmesh_state_path(self) -> Path:
+        """Full path of the SQLMesh state database."""
+        return self.data_dir / self.sqlmesh_state_db
+
+    @model_validator(mode='after')
+    def _check_databases_are_different_files(self) -> Self:
+        paths = {
+            'raw_dta_db': self.raw_data_path,
+            'sqlmesh_data_db': self.sqlmesh_data_path,
+            'sqlmesh_state_db': self.sqlmesh_state_path,
+        }
+        if len(set(paths.values())) != len(paths):
+            raise ValueError(f"Each database needs it's own file, got: {paths}")
+        return self
 
     def ensure_upload_dir(self) -> Path:
         """Create upload dir if it does not exist."""
         self.require_data_dir()
         self.upload_dir.mkdir(exist_ok=True)
         return self.upload_dir
+
+    def ensure_database_dirs(self) -> None:
+        """Create the folder of the database files."""
+        self.require_data_dir()
+        for path in (
+            self.raw_data_path,
+            self.sqlmesh_data_path,
+            self.sqlmesh_state_path,
+        ):
+            path.parent.mkdir(parents=True, exist_ok=True)
 
     def stage_dir(self, run_id: str) -> Path:
         """Create and return stage dir with run_id subfolder inside data dir."""

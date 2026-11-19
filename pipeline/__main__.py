@@ -37,6 +37,12 @@ def _soup(stage: Path) -> BeautifulSoup:
     return BeautifulSoup((stage / PAGE).read_text(encoding='utf-8'), 'lxml')
 
 
+@app.callback()
+def prepare() -> None:
+    """Before every command make sure the database folders exist."""
+    config.data.ensure_database_dirs()
+
+
 @app.command()
 def fetch() -> None:
     """Download the page and save the raw HTML."""

@@ -28,6 +28,7 @@ def clean_slate(monkeypatch, web):
     for db in (data.raw_data_db, data.sqlmesh_data_db):
         for suffix in ('', '.wal'):
             Path(db + suffix).unlink(missing_ok=True)
+    config.data.ensure_database_dirs()
     init_db(data.raw_data_db)
     make_sqlmesh_db(data.sqlmesh_data_db)  # normally created by SQLMesh
     web.html = naba_page()  # 45 songs: 10 + 25 ranked, 5 unranked in each chart
