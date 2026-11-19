@@ -12,7 +12,7 @@ artifacts:
 
 handler_on:
   failure:
-    run: https --ignore-stdin --check-status POST "$NTFY_URL" "Title:naba-top failed" --raw "DAG run failed, see the Dagu UI"
+    run: https --ignore-stdin --check-status POST "$NABA_TOP_PIPELINE__NTFY_URL" "Title:naba-top failed" --raw "DAG run failed, see the Dagu UI"
 
 secrets:
   - name: NABA_TOP_GARAGE__WRITE__SECRET
