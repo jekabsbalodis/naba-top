@@ -128,8 +128,8 @@ Run one step with `uv run python -m pipeline <step>`
 and all the steps in one process with `uv run python -m pipeline run-all`.
 
 **IMPORTANT:**
-Before running `update-models`, execute `sqlmesh plan` command so the `prod` environment
-in SQLMesh database is available.
+Before running `update-models`, execute `sqlmesh plan` command as the `dagu` user (or the user that's running dagu
+scheduler) so the `prod` environment in SQLMesh database is available.
 
 ### Scheduling with Dagu
 

@@ -69,7 +69,7 @@ def upload_data(
     with conn_ctx as conn:
         conn.execute(
             f"""--sql
-             attach '{sqlm_d}' as sqlm_d (read_only)
+             attach '{sqlm_d}' as sqlmesh_data (read_only)
             """,
             # """--sql
             #  attach ? as sqlm_d (read_only)
@@ -82,7 +82,7 @@ def upload_data(
              from information_schema.tables
              where table_catalog = ?
             """,
-            ('sqlm_d',),
+            ('sqlmesh_data',),
         ).fetchall()
 
         exported: list[tuple[str, str]] = []
@@ -93,7 +93,7 @@ def upload_data(
                 (Path(destination) / schema).mkdir(parents=True, exist_ok=True)
             conn.execute(f"""--sql
                          copy
-                             (select * from "sqlm_d"."{schema}"."{view}")
+                             (select * from "sqlmesh_data"."{schema}"."{view}")
                          to '{destination}/{schema}/{view}.parquet'
                              (format parquet, overwrite_or_ignore true)
                         """)

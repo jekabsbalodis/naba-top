@@ -51,7 +51,7 @@ steps:
     depends: [validate_charts]
 
   - id: update_models
-    run: .venv/bin/sqlmesh -p data_transform run
+    run: .venv/bin/sqlmesh -p data_transform --log-file-dir /var/lib/naba-top/sqlmesh_logs run
     depends: [load_charts]
 
   - id: upload

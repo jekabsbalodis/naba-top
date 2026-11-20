@@ -57,3 +57,5 @@ linter:
     - ambiguousorinvalidcolumn
     - invalidselectstarexpansion
     - noambiguousprojections
+
+cache_dir: /var/lib/naba-top/sqlmesh_cache
