@@ -58,4 +58,4 @@ linter:
     - invalidselectstarexpansion
     - noambiguousprojections
 
-cache_dir: /var/lib/naba-top/sqlmesh_cache
+cache_dir: "{{ env_var('NABA_TOP_DATA__DATA_DIR') }}/sqlmesh_cache"

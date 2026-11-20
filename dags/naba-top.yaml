@@ -8,7 +8,7 @@ dotenv: /etc/naba-top/.env
 
 artifacts:
   enabled: true
-  dir: /var/lib/naba-top/artifacts
+  dir: ${NABA_TOP_DATA__DATA_DIR}/artifacts
 
 handler_on:
   failure:
@@ -51,7 +51,7 @@ steps:
     depends: [validate_charts]
 
   - id: update_models
-    run: .venv/bin/sqlmesh -p data_transform --log-file-dir /var/lib/naba-top/sqlmesh_logs run
+    run: .venv/bin/sqlmesh -p data_transform --log-file-dir ${NABA_TOP_DATA__DATA_DIR}/sqlmesh_logs run
     depends: [load_charts]
 
   - id: upload
