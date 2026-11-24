@@ -32,6 +32,12 @@ gateways:
 
 default_gateway: duckdb
 
+# --- Variables ---
+
+variables:
+  top100_total: 101
+  top100_top10_quota: 40
+
 # --- Model Defaults ---
 # https://sqlmesh.readthedocs.io/en/stable/reference/model_configuration/#model-defaults
 
