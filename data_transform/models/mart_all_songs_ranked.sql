@@ -58,9 +58,7 @@ SELECT
   rank()
     OVER (
       ORDER BY
-        ss.normalized_points DESC,
-        ss.weeks_in_chart ASC,
-        ss.raw_points DESC
+        ss.normalized_points DESC, ss.weeks_in_chart ASC, ss.raw_points DESC
     )
     AS place,
   ss.artist,
