@@ -1,2 +1,8 @@
 [sqlfluff]
 dialect = duckdb
+templater = sqlmesh
+encoding = utf-8
+
+[sqlfluff:indentation]
+tab_space_size = 2
+indent_joins = True

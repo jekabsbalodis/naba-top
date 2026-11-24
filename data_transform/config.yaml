@@ -41,12 +41,6 @@ model_defaults:
   cron_tz: "Europe/Riga"
   start: "2026-01-02"
 
-# --- Formatting Rules --
-format:
-  normalize: true
-  normalize_functions: lower
-  append_newline: true
-
 # --- Linting Rules ---
 # Enforce standards for your team
 # https://sqlmesh.readthedocs.io/en/stable/guides/linter/

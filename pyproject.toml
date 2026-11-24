@@ -21,6 +21,7 @@ dev = [
   "pytest-cov>=7.1.0",
   "ruff>=0.13.2",
   "sqlfluff>=3.5.0",
+  "sqlfluff-templater-sqlmesh>=4.5.0",
   "tombi>=0.6.17",
   "ty>=0.0.1a21",
 ]

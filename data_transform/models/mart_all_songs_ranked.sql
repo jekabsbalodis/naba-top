@@ -16,34 +16,34 @@ WITH song_scores AS (
     fsum(
       CASE
         WHEN c.chart_type = 'top10' AND NOT c.place IS NULL
-        THEN (
-          11 - c.place
-        )
+          THEN (
+            11 - c.place
+          )
         WHEN c.chart_type = 'top25'
-        THEN (
-          (
-            26 - c.place
-          ) / 2.5
-        )
+          THEN (
+            (
+              26 - c.place
+            ) / 2.5
+          )
         ELSE 0
       END
     ) AS normalized_points,
     fsum(
       CASE
         WHEN c.chart_type = 'top10' AND NOT c.place IS NULL
-        THEN (
-          11 - c.place
-        )
+          THEN (
+            11 - c.place
+          )
         WHEN c.chart_type = 'top25'
-        THEN (
-          26 - c.place
-        )
+          THEN (
+            26 - c.place
+          )
         ELSE 0
       END
     ) AS raw_points,
     CASE
-      WHEN bool_or(CAST(c.chart_type = 'top10' AS BOOLEAN))
-      THEN 'top10'
+      WHEN bool_or(cast(c.chart_type = 'top10' AS BOOLEAN))
+        THEN 'top10'
       ELSE 'top25'
     END AS chart_type
   FROM sqlmesh_data.fct.charts AS c
@@ -53,8 +53,16 @@ WITH song_scores AS (
     c.artist,
     c.song_name
 )
+
 SELECT
-  rank() OVER (ORDER BY ss.normalized_points DESC, ss.weeks_in_chart ASC, ss.raw_points DESC) AS place,
+  rank()
+    OVER (
+      ORDER BY
+        ss.normalized_points DESC,
+        ss.weeks_in_chart ASC,
+        ss.raw_points DESC
+    )
+    AS place,
   ss.artist,
   ss.song_name,
   ss.weeks_in_chart,
