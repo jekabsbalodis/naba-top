@@ -8,7 +8,7 @@ dotenv: /etc/naba-top/.env
 
 artifacts:
   enabled: true
-  dir: ${NABA_TOP_DATA__DATA_DIR}/artifacts
+  dir: /var/lib/naba-top/artifacts # keep the dir (part before `/artifacts`) the same as NABA_TOP_DATA__DATA_DIR for consistency
 
 handler_on:
   failure:
